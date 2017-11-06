@@ -158,6 +158,9 @@ class CRM_Core_Smarty extends Smarty {
     $this->load_filter('pre', 'resetExtScope');
 
     $this->assign('crmPermissions', new CRM_Core_Smarty_Permissions());
+
+    // DRS: Disable caching for now - it's problematic on Pantheon.
+    $this->caching = 0;
   }
 
   /**
