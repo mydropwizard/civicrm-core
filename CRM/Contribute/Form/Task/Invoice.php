@@ -152,8 +152,7 @@ class CRM_Contribute_Form_Task_Invoice extends CRM_Contribute_Form_Task {
     }
 
     $this->add('select', 'from_email_address', ts('From'), $this->_fromEmails, TRUE);
-    // @todo This should check if $this->_single is FALSE and act differently
-    $this->add('select', 'to_email_address', ts('To'), CRM_Core_BAO_Email::getToEmail($this->_contactIds[0]), TRUE);
+    $this->add('select', 'to_email_address', ts('To'), static::getToEmails(), TRUE);
     $this->add('text', 'cc_email_address', ts('CC'));
     $this->add('text', 'bcc_email_address', ts('BCC'));
     if ($this->_selectedOutput != 'email') {
@@ -494,8 +493,19 @@ class CRM_Contribute_Form_Task_Invoice extends CRM_Contribute_Form_Task {
         }
       }
       elseif ($contribution->_component == 'contribute') {
-        // to email address
-        $toEmailAddress = CRM_Utils_Array::value('to_email_address', $params);
+        $selectedTo = CRM_Utils_Array::value('to_email_address', $params);
+        if (count($contactIds) > 1) {
+          //Get mails from location type for this user
+          $toEmailAddress = CRM_Contact_BAO_Contact::getEmailsFromLocation($contribution->contact_id, $selectedTo);
+          //Get primary email if there is no mail for selected location type
+          if (is_null($toEmailAddress)) {
+            $toEmailAddress = CRM_Contact_BAO_Contact::getPrimaryEmail($contribution->contact_id);
+          } else {
+            $toEmailAddress = implode(', ', $toEmailAddress);
+          }
+        } else {
+          $toEmailAddress = $selectedTo;
+        }
         // cc email address
         $ccEmailAddress = CRM_Utils_Array::value('cc_email_address', $params);
         // bcc email address
@@ -645,6 +655,25 @@ class CRM_Contribute_Form_Task_Invoice extends CRM_Contribute_Form_Task {
     $contactId = CRM_Utils_Request::retrieve('cid', 'Positive', CRM_Core_DAO::$_nullObject, FALSE);
     $params = ['output' => 'pdf_invoice'];
     CRM_Contribute_Form_Task_Invoice::printPDF($contributionIDs, $params, $contactId);
+  }
+
+  /**
+   * Helper function to get mails to send the invoice
+   *
+   * @return array
+   * @throws \CiviCRM_API3_Exception
+   */
+  protected function getToEmails() {
+    $emails = [];
+
+    // sending to multiple contacts
+    if (count($this->_contactIds) > 1) {
+      $emails = CRM_Core_BAO_Email::getAvailableLocations($this->_contactIds);
+    } elseif (!empty($this->_contactIds)) { // sending to a single contact
+      $emails = CRM_Core_BAO_Email::getToEmail($this->_contactIds);
+    }
+
+    return $emails;
   }
 
 }
