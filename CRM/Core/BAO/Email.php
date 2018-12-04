@@ -357,6 +357,7 @@ AND    reset_date IS NULL
       'id' => $contactID,
       'api.Email.get' => ['api.LocationType.getsingle' => []],
     ]);
+
     $contactName = $contactEntity['display_name'];
     //Get mail entities from this contact
     $mailEntities = $contactEntity['api.Email.get'];
@@ -365,16 +366,55 @@ AND    reset_date IS NULL
       //Get location type entity associated
       $locationTypeEntity = $mailEntity['api.LocationType.getsingle'];
       $locationName = $locationTypeEntity['display_name'];
+
       $toEmail = "$contactName <$email>";
-      $toEmailHtml = htmlspecialchars($toEmail . ' ' . $locationName);
+      $toEmailHtml = $locationName;
+
       if (!empty($mailEntity['is_primary'])) {
         $toEmailHtml .= ' ' . ts('(preferred) ');
       }
+
+      $toEmailHtml .= htmlspecialchars($toEmail);
+
       //Add contact email to mails array
       $emails[$toEmail] = $toEmailHtml;
     }
+    //Add contact email to mails array
+    $emails[$toEmail] = $toEmailHtml;
 
     return $emails;
+  }
+
+  /**
+   * Get available locations for a given set of contacts
+   *
+   * @param array $contactIDs
+   *
+   * @return array
+   * @throws \CiviCRM_API3_Exception
+   */
+  public static function getAvailableLocations($contactIDs) {
+    $locations = [];
+
+    $contactsEntity = civicrm_api3('Contact', 'get', [
+      'sequential' => 1,
+      'id' => ['IN' => $contactIDs],
+      'api.Email.get' => ['api.LocationType.getsingle' => []],
+    ]);
+
+    foreach ($contactsEntity['values'] as $contactEntity) {
+      //Get mail entitiy
+      $mailEntities = $contactEntity['api.Email.get'];
+      foreach ($mailEntities['values'] as $mailEntity) {
+        //Get location type entity associated
+        $locationTypeEntity = $mailEntity['api.LocationType.getsingle'];
+        $locationName = $locationTypeEntity['display_name'];
+        $locationID = $locationTypeEntity['id'];
+        $locations[$locationID] = $locationName;
+      }
+    }
+
+    return $locations;
   }
 
   /**
