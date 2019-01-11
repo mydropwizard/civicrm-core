@@ -49,6 +49,9 @@ class TokenCompatSubscriber implements EventSubscriberInterface {
     $messageTokens = $e->getTokenProcessor()->getMessageTokens();
 
     foreach ($e->getRows() as $row) {
+      if (empty($row->context['contactId'])) {
+        continue;
+      }
       /** @var int $contactId */
       $contactId = $row->context['contactId'];
       if (empty($row->context['contact'])) {
@@ -90,7 +93,7 @@ class TokenCompatSubscriber implements EventSubscriberInterface {
       // less randomly.
       \CRM_Utils_Hook::tokenValues($contactArray,
         (array) $contactId,
-        empty($row->context['mailingJob']) ? NULL : $row->context['mailingJob']->id,
+        empty($row->context['mailingJobId']) ? NULL : $row->context['mailingJobId'],
         $messageTokens,
         $row->context['controller']
       );

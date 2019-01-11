@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -267,6 +267,8 @@ class api_v3_ContributionTest extends CiviUnitTestCase {
     $params = array_merge($params, array(
       'id' => $contributionID,
       'invoice_number' => CRM_Utils_Array::value('invoice_prefix', Civi::settings()->get('contribution_invoice_settings')) . "" . $contributionID,
+      'trxn_id' => 12345,
+      'invoice_id' => 6789,
     ));
     $contributionID = $this->contributionCreate($params);
 
@@ -300,6 +302,21 @@ class api_v3_ContributionTest extends CiviUnitTestCase {
       }
       $this->assertTrue((!empty($contribution[$returnField]) || $contribution[$returnField] === "0"), $returnField);
     }
+  }
+
+  /**
+   * Test cancel reason works as a filter.
+   */
+  public function testFilterCancelReason() {
+    $params = $this->_params;
+    $params['cancel_date'] = 'yesterday';
+    $params['cancel_reason'] = 'You lose sucker';
+    $this->callAPISuccess('Contribution', 'create', $params);
+    $params = $this->_params;
+    $params['cancel_date'] = 'yesterday';
+    $params['cancel_reason'] = 'You are a winner';
+    $this->callAPISuccess('Contribution', 'create', $params);
+    $this->callAPISuccessGetCount('Contribution', ['cancel_reason' => 'You are a winner'], 1);
   }
 
   /**
@@ -1100,6 +1117,19 @@ class api_v3_ContributionTest extends CiviUnitTestCase {
     ));
     $this->assertEquals(1, $contribution['contribution_status_id']);
     $this->assertEquals('Check', $contribution['payment_instrument']);
+    $this->callAPISuccessGetCount('Contribution', ['id' => $contribution['id']], 0);
+  }
+
+  /**
+   * Test that getsingle can be chained with delete.
+   */
+  public function testDeleteChainedGetSingle() {
+    $contribution = $this->callAPISuccess('contribution', 'create', $this->_params);
+    $contribution = $this->callAPISuccess('contribution', 'getsingle', array(
+      'id' => $contribution['id'],
+      'api.contribution.delete' => 1,
+    ));
+    $this->callAPISuccessGetCount('Contribution', ['id' => $contribution['id']], 0);
   }
 
   /**
@@ -1626,6 +1656,65 @@ class api_v3_ContributionTest extends CiviUnitTestCase {
     );
     $result = $this->callAPISuccess('contribution', 'delete', $params);
     $this->assertAPISuccess($result);
+  }
+
+  /**
+   * Check that net_amount is updated when a contribution is updated.
+   *
+   * Update fee amount AND total amount, just fee amount, just total amount
+   * and neither to check that net_amount is keep updated.
+   */
+  public function testUpdateContributionNetAmountVariants() {
+    $contributionID = $this->contributionCreate(['contact_id' => $this->individualCreate()]);
+
+    $this->callAPISuccess('Contribution', 'create', [
+      'id' => $contributionID,
+      'total_amount' => 90,
+      'fee_amount' => 6,
+    ]);
+    $contribution = $this->callAPISuccessGetSingle('Contribution', [
+      'id' => $contributionID,
+      'return' => ['net_amount', 'fee_amount', 'total_amount'],
+    ]);
+    $this->assertEquals(6, $contribution['fee_amount']);
+    $this->assertEquals(90, $contribution['total_amount']);
+    $this->assertEquals(84, $contribution['net_amount']);
+
+    $this->callAPISuccess('Contribution', 'create', [
+      'id' => $contributionID,
+      'fee_amount' => 3,
+    ]);
+    $contribution = $this->callAPISuccessGetSingle('Contribution', [
+      'id' => $contributionID,
+      'return' => ['net_amount', 'fee_amount', 'total_amount'],
+    ]);
+    $this->assertEquals(3, $contribution['fee_amount']);
+    $this->assertEquals(90, $contribution['total_amount']);
+    $this->assertEquals(87, $contribution['net_amount']);
+
+    $this->callAPISuccess('Contribution', 'create', [
+      'id' => $contributionID,
+      'total_amount' => 200,
+    ]);
+    $contribution = $this->callAPISuccessGetSingle('Contribution', [
+      'id' => $contributionID,
+      'return' => ['net_amount', 'fee_amount', 'total_amount'],
+    ]);
+    $this->assertEquals(3, $contribution['fee_amount']);
+    $this->assertEquals(200, $contribution['total_amount']);
+    $this->assertEquals(197, $contribution['net_amount']);
+
+    $this->callAPISuccess('Contribution', 'create', [
+      'id' => $contributionID,
+      'payment_instrument' => 'Cash'
+    ]);
+    $contribution = $this->callAPISuccessGetSingle('Contribution', [
+      'id' => $contributionID,
+      'return' => ['net_amount', 'fee_amount', 'total_amount'],
+    ]);
+    $this->assertEquals(3, $contribution['fee_amount']);
+    $this->assertEquals(200, $contribution['total_amount']);
+    $this->assertEquals(197, $contribution['net_amount']);
   }
 
   /**
@@ -2203,12 +2292,12 @@ class api_v3_ContributionTest extends CiviUnitTestCase {
     $this->assertEquals($contributionRecur['values'][1]['is_test'], $repeatedContribution['values'][2]['is_test']);
     $this->quickCleanUpFinancialEntities();
   }
+
   /**
-   * CRM-19945 Tests repeattransaction is using a completed contribution for the template.
+   * CRM-19945 Tests that Contribute.repeattransaction renews a membership when contribution status=Completed
    *
-   *  ( Tests membership is renewed after repeattransaction. )
    */
-  public function testRepeatTransactionUsesCompleted() {
+  public function testRepeatTransactionMembershipRenewCompletedContribution() {
     list($originalContribution, $membership) = $this->setUpAutoRenewMembership();
 
     $this->callAPISuccess('contribution', 'create', array(
@@ -2222,7 +2311,7 @@ class api_v3_ContributionTest extends CiviUnitTestCase {
     $this->callAPISuccess('membership', 'create', array(
        'id' => $membership['id'],
        'end_date' => 'yesterday',
-       'status_id' => 4,
+       'status_id' => 'Expired',
     ));
 
     $contribution = $this->callAPISuccess('contribution', 'repeattransaction', array(
@@ -2236,13 +2325,83 @@ class api_v3_ContributionTest extends CiviUnitTestCase {
       'return' => 'status_id',
     ));
 
-    $this->assertEquals('New', CRM_Core_PseudoConstant::getLabel('CRM_Member_BAO_Membership', 'status_id', $membershipStatusId));
+    $membership = $this->callAPISuccess('membership', 'get', array(
+      'id' => $membership['id'],
+    ));
+
+    $this->assertEquals('New', CRM_Core_PseudoConstant::getName('CRM_Member_BAO_Membership', 'status_id', $membershipStatusId));
 
     $lineItem = $this->callAPISuccessGetSingle('LineItem', array('contribution_id' => $contribution['id']));
     $this->assertEquals('civicrm_membership', $lineItem['entity_table']);
     $this->callAPISuccessGetCount('MembershipPayment', array('membership_id' => $membership['id']));
     $this->quickCleanUpFinancialEntities();
     $this->contactDelete($originalContribution['values'][1]['contact_id']);
+  }
+
+  /**
+   * CRM-19945 Tests that Contribute.repeattransaction DOES NOT renew a membership when contribution status=Failed
+   *
+   * @dataProvider contributionStatusProvider
+   */
+  public function testRepeatTransactionMembershipRenewContributionNotCompleted($contributionStatus) {
+    // Completed status should renew so we don't test that here
+    // In Progress status is only for recurring contributions so we don't test that here
+    if (in_array($contributionStatus['name'], ['Completed', 'In Progress'])) {
+      return;
+    }
+    list($originalContribution, $membership) = $this->setUpAutoRenewMembership();
+
+    $this->callAPISuccess('contribution', 'create', array(
+      'contact_id' => $originalContribution['values'][1]['contact_id'],
+      'financial_type_id' => $originalContribution['values'][1]['financial_type_id'],
+      'total_amount' => $originalContribution['values'][1]['total_amount'],
+      'contribution_recur_id' => $originalContribution['values'][1]['contribution_recur_id'],
+      'contribution_status_id' => "Completed",
+    ));
+
+    $this->callAPISuccess('membership', 'create', array(
+      'id' => $membership['id'],
+      'end_date' => 'yesterday',
+      'status_id' => 'Expired',
+    ));
+
+    $contribution = $this->callAPISuccess('contribution', 'repeattransaction', array(
+      'contribution_recur_id' => $originalContribution['values'][1]['contribution_recur_id'],
+      'contribution_status_id' => $contributionStatus['name'],
+      'trxn_id' => 'bobsled',
+    ));
+
+    $updatedMembership = $this->callAPISuccess('membership', 'getsingle', array(
+      'id' => $membership['id'],
+    ));
+
+    $dateTime = new DateTime('yesterday');
+    $this->assertEquals($dateTime->format('Y-m-d'), $updatedMembership['end_date']);
+    $this->assertEquals(CRM_Core_PseudoConstant::getKey('CRM_Member_BAO_Membership', 'status_id', 'Expired'), $updatedMembership['status_id']);
+
+    $lineItem = $this->callAPISuccessGetSingle('LineItem', array('contribution_id' => $contribution['id']));
+    $this->assertEquals('civicrm_membership', $lineItem['entity_table']);
+    $this->callAPISuccessGetCount('MembershipPayment', array('membership_id' => $membership['id']));
+    $this->quickCleanUpFinancialEntities();
+    $this->contactDelete($originalContribution['values'][1]['contact_id']);
+  }
+
+  /**
+   * Dataprovider provides contribution status as [optionvalue=>contribution_status_name]
+   * FIXME: buildOptions seems to die in CRM_Core_Config::_construct when in test mode.
+   *
+   * @return array
+   * @throws \CiviCRM_API3_Exception
+   */
+  public function contributionStatusProvider() {
+    $contributionStatuses = civicrm_api3('OptionValue', 'get', [
+      'return' => ["id", "name"],
+      'option_group_id' => "contribution_status",
+    ]);
+    foreach ($contributionStatuses['values'] as $statusName) {
+      $statuses[] = [$statusName];
+    }
+    return $statuses;
   }
 
   /**
@@ -3860,7 +4019,7 @@ class api_v3_ContributionTest extends CiviUnitTestCase {
   /**
    * CRM-20008 Tests repeattransaction creates pending membership.
    */
-  public function testRepeatTransactionPendingMembership() {
+  public function testRepeatTransactionMembershipCreatePendingContribution() {
     list($originalContribution, $membership) = $this->setUpAutoRenewMembership();
     $this->callAPISuccess('membership', 'create', array(
       'id' => $membership['id'],
@@ -3879,7 +4038,7 @@ class api_v3_ContributionTest extends CiviUnitTestCase {
 
     // Let's see if the membership payments got created while we're at it.
     $membershipPayments = $this->callAPISuccess('MembershipPayment', 'get', array(
-      'memberhip_id' => $membership['id'],
+      'membership_id' => $membership['id'],
     ));
     $this->assertEquals(2, $membershipPayments['count']);
 
@@ -3889,7 +4048,7 @@ class api_v3_ContributionTest extends CiviUnitTestCase {
       'id' => $membership['id'],
       'return' => 'status_id, end_date',
     ));
-    $this->assertEquals('New', CRM_Core_PseudoConstant::getLabel('CRM_Member_BAO_Membership', 'status_id', $membership['status_id']));
+    $this->assertEquals('New', CRM_Core_PseudoConstant::getName('CRM_Member_BAO_Membership', 'status_id', $membership['status_id']));
     $this->assertEquals(date('Y-m-d', strtotime('yesterday + 1 month')), $membership['end_date']);
 
     $this->quickCleanUpFinancialEntities();

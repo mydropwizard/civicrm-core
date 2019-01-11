@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -194,7 +194,7 @@ class CRM_Case_Form_Activity_ChangeCaseStatus {
 
       // Reopen case-specific relationships (roles)
       foreach ($params['target_contact_id'] as $cid) {
-        $rels = CRM_Case_BAO_Case::getCaseRoles($cid, $params['case_id']);
+        $rels = CRM_Case_BAO_Case::getCaseRoles($cid, $params['case_id'], NULL, FALSE);
         // FIXME: Is there an existing function?
         $query = 'UPDATE civicrm_relationship SET end_date=NULL WHERE id=%1';
         foreach ($rels as $relId => $relData) {

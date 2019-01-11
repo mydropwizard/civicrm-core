@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 require_once 'Mail/mime.php';
@@ -66,8 +66,8 @@ class CRM_Core_BAO_MessageTemplate extends CRM_Core_DAO_MessageTemplate {
    * @param bool $is_active
    *   Value we want to set the is_active field.
    *
-   * @return Object
-   *   DAO object on success, NULL otherwise
+   * @return bool
+   *   true if we found and updated the object, else false
    */
   public static function setIsActive($id, $is_active) {
     return CRM_Core_DAO::setFieldValue('CRM_Core_DAO_MessageTemplate', $id, 'is_active', $is_active);
@@ -83,6 +83,33 @@ class CRM_Core_BAO_MessageTemplate extends CRM_Core_DAO_MessageTemplate {
    * @return object
    */
   public static function add(&$params) {
+    // System Workflow Templates have a specific wodkflow_id in them but normal user end message templates don't
+    // If we have an id check to see if we are update, and need to check if original is a system workflow or not.
+    $systemWorkflowPermissionDeniedMessage = 'Editing or creating system workflow messages requires edit system workflow message templates permission or the edit message templates permission';
+    $userWorkflowPermissionDeniedMessage = 'Editing or creating user driven workflow messages requires edit user-driven message templates or the edit message templates permission';
+    if (!empty($params['check_permissions'])) {
+      if (!CRM_Core_Permission::check('edit message templates')) {
+        if (!empty($params['id'])) {
+          $details = civicrm_api3('MessageTemplate', 'getSingle', ['id' => $params['id']]);
+          if (!empty($details['workflow_id'])) {
+            if (!CRM_Core_Permission::check('edit system workflow message templates')) {
+              throw new \Civi\API\Exception\UnauthorizedException(ts('%1', [1 => $systemWorkflowPermissionDeniedMessage]));
+            }
+          }
+          elseif (!CRM_Core_Permission::check('edit user-driven message templates')) {
+            throw new \Civi\API\Exception\UnauthorizedException(ts('%1', [1 => $userWorkflowPermissionDeniedMessage]));
+          }
+        }
+        else {
+          if (!empty($params['workflow_id']) && !CRM_Core_Permission::check('edit system workflow message templates')) {
+            throw new \Civi\API\Exception\UnauthorizedException(ts('%1', [1 => $systemWorkflowPermissionDeniedMessage]));
+          }
+          elseif (!CRM_Core_Permission::check('edit user-driven message templates')) {
+            throw new \Civi\API\Exception\UnauthorizedException(ts('%1', [1 => $userWorkflowPermissionDeniedMessage]));
+          }
+        }
+      }
+    }
     $hook = empty($params['id']) ? 'create' : 'edit';
     CRM_Utils_Hook::pre($hook, 'MessageTemplate', CRM_Utils_Array::value('id', $params), $params);
 
@@ -361,6 +388,11 @@ class CRM_Core_BAO_MessageTemplate extends CRM_Core_DAO_MessageTemplate {
     $params = array_merge($defaults, $params);
 
     CRM_Utils_Hook::alterMailParams($params, 'messageTemplate');
+
+    // Core#644 - handle contact ID passed as "From".
+    if (isset($params['from'])) {
+      $params['from'] = CRM_Utils_Mail::formatFromAddress($params['from']);
+    }
 
     if ((!$params['groupName'] ||
         !$params['valueName']

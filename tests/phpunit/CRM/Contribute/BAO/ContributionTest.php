@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -30,6 +30,8 @@
  * @group headless
  */
 class CRM_Contribute_BAO_ContributionTest extends CiviUnitTestCase {
+
+  use CRMTraits_Financial_FinancialACLTrait;
 
   /**
    * Clean up after tests.
@@ -306,6 +308,36 @@ class CRM_Contribute_BAO_ContributionTest extends CiviUnitTestCase {
   }
 
   /**
+   * Test that financial type data is not added to the annual query if acls not enabled.
+   */
+  public function testAnnualQueryWithFinancialACLsEnabled() {
+    $this->enableFinancialACLs();
+    $this->createLoggedInUserWithFinancialACL();
+    $permittedFinancialType = CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'financial_type_id', 'Donation');
+    $sql = CRM_Contribute_BAO_Contribution::getAnnualQuery([1, 2, 3]);
+    $this->assertContains('SUM(total_amount) as amount,', $sql);
+    $this->assertContains('WHERE b.contact_id IN (1,2,3)', $sql);
+    $this->assertContains('b.financial_type_id IN (' . $permittedFinancialType . ')', $sql);
+
+    // Run it to make sure it's not bad sql.
+    CRM_Core_DAO::executeQuery($sql);
+    $this->disableFinancialACLs();
+  }
+
+  /**
+   * Test that financial type data is not added to the annual query if acls not enabled.
+   */
+  public function testAnnualQueryWithFinancialACLsDisabled() {
+    $sql = CRM_Contribute_BAO_Contribution::getAnnualQuery([1, 2, 3]);
+    $this->assertContains('SUM(total_amount) as amount,', $sql);
+    $this->assertContains('WHERE b.contact_id IN (1,2,3)', $sql);
+    $this->assertNotContains('b.financial_type_id', $sql);
+    //$this->assertNotContains('line_item', $sql);
+    // Run it to make sure it's not bad sql.
+    CRM_Core_DAO::executeQuery($sql);
+  }
+
+  /**
    * Display sort name during.
    * Update multiple contributions
    * sortName();
@@ -362,10 +394,6 @@ class CRM_Contribute_BAO_ContributionTest extends CiviUnitTestCase {
   public function testAddPremium() {
     $contactId = $this->individualCreate();
 
-    $ids = array(
-      'premium' => NULL,
-    );
-
     $params = array(
       'name' => 'TEST Premium',
       'sku' => 111,
@@ -376,11 +404,11 @@ class CRM_Contribute_BAO_ContributionTest extends CiviUnitTestCase {
       'min_contribution' => 100,
       'is_active' => 1,
     );
-    $premium = CRM_Contribute_BAO_ManagePremiums::add($params, $ids);
+    $premium = CRM_Contribute_BAO_Product::create($params);
 
     $this->assertEquals('TEST Premium', $premium->name, 'Check for premium  name.');
 
-    $param = array(
+    $contributionParams = array(
       'contact_id' => $contactId,
       'currency' => 'USD',
       'financial_type_id' => 1,
@@ -399,9 +427,9 @@ class CRM_Contribute_BAO_ContributionTest extends CiviUnitTestCase {
       'thankyou_date' => '20080522',
       'sequential' => TRUE,
     );
-    $contribution = $this->callAPISuccess('Contribution', 'create', $param)['values'][0];
+    $contribution = $this->callAPISuccess('Contribution', 'create', $contributionParams)['values'][0];
 
-    $this->assertEquals($param['trxn_id'], $contribution['trxn_id'], 'Check for transcation id creation.');
+    $this->assertEquals($contributionParams['trxn_id'], $contribution['trxn_id'], 'Check for transcation id creation.');
     $this->assertEquals($contactId, $contribution['contact_id'], 'Check for contact id  creation.');
 
     //parameter for adding premium to contribution
@@ -415,7 +443,7 @@ class CRM_Contribute_BAO_ContributionTest extends CiviUnitTestCase {
     $this->assertEquals($contributionProduct->product_id, $premium->id, 'Check for Product id .');
 
     //Delete Product
-    CRM_Contribute_BAO_ManagePremiums::del($premium->id);
+    CRM_Contribute_BAO_Product::del($premium->id);
     $this->assertDBNull('CRM_Contribute_DAO_Product', $premium->name,
       'id', 'name', 'Database check for deleted Product.'
     );
@@ -793,16 +821,82 @@ WHERE eft.entity_id = %1 AND ft.to_financial_account_id <> %2";
         ),
       ),
     );
+
     try {
       CRM_Contribute_BAO_Contribution::checkLineItems($params);
       $this->fail("Missed expected exception");
     }
-    catch (Exception $e) {
-      $this->assertEquals("Line item total doesn't match with total amount.", $e->getMessage());
+    catch (CRM_Contribute_Exception_CheckLineItemsException $e) {
+      $this->assertEquals(
+        CRM_Contribute_Exception_CheckLineItemsException::LINE_ITEM_DIFFERRING_TOTAL_EXCEPTON_MSG,
+        $e->getMessage()
+      );
     }
+
     $this->assertEquals(3, $params['line_items'][0]['line_item'][0]['financial_type_id']);
     $params['total_amount'] = 300;
+
     CRM_Contribute_BAO_Contribution::checkLineItems($params);
+  }
+
+  /**
+   * Tests CRM_Contribute_BAO_Contribution::checkLineItems() method works with
+   * floating point values.
+   */
+  public function testCheckLineItemsWithFloatingPointValues() {
+    $params = array(
+      'contact_id' => 202,
+      'receive_date' => date('Y-m-d'),
+      'total_amount' => 16.67,
+      'financial_type_id' => 3,
+      'line_items' => array(
+        array(
+          'line_item' => array(
+            array(
+              'entity_table' => 'civicrm_contribution',
+              'price_field_id' => 8,
+              'price_field_value_id' => 16,
+              'label' => 'test 1',
+              'qty' => 1,
+              'unit_price' => 14.85,
+              'line_total' => 14.85,
+            ),
+            array(
+              'entity_table' => 'civicrm_contribution',
+              'price_field_id' => 8,
+              'price_field_value_id' => 17,
+              'label' => 'Test 2',
+              'qty' => 1,
+              'unit_price' => 1.66,
+              'line_total' => 1.66,
+              'financial_type_id' => 1,
+            ),
+            array(
+              'entity_table' => 'civicrm_contribution',
+              'price_field_id' => 8,
+              'price_field_value_id' => 17,
+              'label' => 'Test 2',
+              'qty' => 1,
+              'unit_price' => 0.16,
+              'line_total' => 0.16,
+              'financial_type_id' => 1,
+            ),
+          ),
+          'params' => array(),
+        ),
+      ),
+    );
+
+    $foundException = FALSE;
+
+    try {
+      CRM_Contribute_BAO_Contribution::checkLineItems($params);
+    }
+    catch (CRM_Contribute_Exception_CheckLineItemsException $e) {
+      $foundException = TRUE;
+    }
+
+    $this->assertFalse($foundException);
   }
 
   /**

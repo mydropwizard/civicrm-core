@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -31,7 +31,7 @@
  * @package CiviCRM_APIv3
  * @subpackage API_Job
  *
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  * @version $Id: Job.php 30879 2010-11-22 15:45:55Z shot $
  *
  */
@@ -104,6 +104,42 @@ class api_v3_JobProcessMailingTest extends CiviUnitTestCase {
     ));
     $this->callAPISuccess('mailing', 'create', $this->_params);
     $this->_mut->assertRecipients(array());
+    $this->callAPISuccess('job', 'process_mailing', array());
+    $this->_mut->assertRecipients($this->getRecipients(1, 2));
+  }
+
+  /**
+   * Test pause and resume on Mailing.
+   */
+  public function testPauseAndResumeMailing() {
+    $this->createContactsInGroup(10, $this->_groupID);
+    Civi::settings()->add(array(
+      'mailerBatchLimit' => 2,
+    ));
+    $this->_mut->clearMessages();
+    //Create a test mailing and check if the status is set to Scheduled.
+    $result = $this->callAPISuccess('mailing', 'create', $this->_params);
+    $jobs = $this->callAPISuccess('mailing_job', 'get', array('mailing_id' => $result['id']));
+    $this->assertEquals('Scheduled', $jobs['values'][$jobs['id']]['status']);
+
+    //Pause the mailing.
+    CRM_Mailing_BAO_MailingJob::pause($result['id']);
+    $jobs = $this->callAPISuccess('mailing_job', 'get', array('mailing_id' => $result['id']));
+    $this->assertEquals('Paused', $jobs['values'][$jobs['id']]['status']);
+
+    //Verify if Paused mailing isn't considered in process_mailing job.
+    $this->callAPISuccess('job', 'process_mailing', array());
+    //Check if mail log is empty.
+    $this->_mut->assertMailLogEmpty();
+    $jobs = $this->callAPISuccess('mailing_job', 'get', array('mailing_id' => $result['id']));
+    $this->assertEquals('Paused', $jobs['values'][$jobs['id']]['status']);
+
+    //Resume should set the status back to Scheduled.
+    CRM_Mailing_BAO_MailingJob::resume($result['id']);
+    $jobs = $this->callAPISuccess('mailing_job', 'get', array('mailing_id' => $result['id']));
+    $this->assertEquals('Scheduled', $jobs['values'][$jobs['id']]['status']);
+
+    //Execute the job and it should send the mailing to the recipients now.
     $this->callAPISuccess('job', 'process_mailing', array());
     $this->_mut->assertRecipients($this->getRecipients(1, 2));
   }
@@ -301,6 +337,7 @@ class api_v3_JobProcessMailingTest extends CiviUnitTestCase {
    *    The total number of contacts for whom messages should have
    *    been sent.
    * @dataProvider concurrencyExamples
+   * @group ornery
    */
   public function testConcurrency($settings, $expectedTallies, $expectedTotal) {
     $settings = array_merge($this->defaultSettings, $settings);

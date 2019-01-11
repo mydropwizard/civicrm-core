@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
 | CiviCRM version 5                                                  |
 +--------------------------------------------------------------------+
-| Copyright CiviCRM LLC (c) 2004-2018                                |
+| Copyright CiviCRM LLC (c) 2004-2019                                |
 +--------------------------------------------------------------------+
 | This file is a part of CiviCRM.                                    |
 |                                                                    |
@@ -85,7 +85,7 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
    */
   public function testProfileGet() {
     $profileFieldValues = $this->_createIndividualContact();
-    $expected = current($profileFieldValues);
+    $expected = reset($profileFieldValues);
     $contactId = key($profileFieldValues);
     $params = array(
       'profile_id' => $this->_profileID,
@@ -99,7 +99,7 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
 
   public function testProfileGetMultiple() {
     $profileFieldValues = $this->_createIndividualContact();
-    $expected = current($profileFieldValues);
+    $expected = reset($profileFieldValues);
     $contactId = key($profileFieldValues);
     $params = array(
       'profile_id' => array($this->_profileID, 1, 'Billing'),
@@ -382,9 +382,8 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
    * Check with missing required field in profile.
    */
   public function testProfileSubmitCheckProfileRequired() {
-    $pofileFieldValues = $this->_createIndividualContact();
-    current($pofileFieldValues);
-    $contactId = key($pofileFieldValues);
+    $profileFieldValues = $this->_createIndividualContact();
+    $contactId = key($profileFieldValues);
     $updateParams = array(
       'first_name' => 'abc2',
       'last_name' => 'xyz2',
@@ -406,9 +405,8 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
    * Check with success.
    */
   public function testProfileSubmit() {
-    $pofileFieldValues = $this->_createIndividualContact();
-    current($pofileFieldValues);
-    $contactId = key($pofileFieldValues);
+    $profileFieldValues = $this->_createIndividualContact();
+    $contactId = key($profileFieldValues);
 
     $updateParams = array(
       'first_name' => 'abc2',
@@ -505,9 +503,8 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
    * Set is deprecated but we need to ensure it still works.
    */
   public function testLegacySet() {
-    $pofileFieldValues = $this->_createIndividualContact();
-    current($pofileFieldValues);
-    $contactId = key($pofileFieldValues);
+    $profileFieldValues = $this->_createIndividualContact();
+    $contactId = key($profileFieldValues);
 
     $updateParams = array(
       'first_name' => 'abc2',
@@ -704,6 +701,105 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
         );
       }
     }
+  }
+
+  /**
+   * Check success with tags.
+   */
+  public function testSubmitWithTags() {
+    $profileFieldValues = $this->_createIndividualContact();
+    $params = reset($profileFieldValues);
+    $contactId = key($profileFieldValues);
+    $params['profile_id'] = $this->_profileID;
+    $params['contact_id'] = $contactId;
+
+    $this->callAPISuccess('ufField', 'create', array(
+      'uf_group_id' => $this->_profileID,
+      'field_name' => 'tag',
+      'visibility' => 'Public Pages and Listings',
+      'field_type' => 'Contact',
+      'label' => 'Tags',
+    ));
+
+    $tag_1 = $this->callAPISuccess('tag', 'create', ['name' => 'abc'])['id'];
+    $tag_2 = $this->callAPISuccess('tag', 'create', ['name' => 'def'])['id'];
+
+    $params['tag'] = "$tag_1,$tag_2";
+    $result = $this->callAPISuccess('profile', 'submit', $params);
+
+    $tags = $this->callAPISuccess('entityTag', 'get', ['entity_id' => $contactId]);
+    $this->assertEquals(2, $tags['count']);
+
+    $params['tag'] = [$tag_1];
+    $result = $this->callAPISuccess('profile', 'submit', $params);
+
+    $tags = $this->callAPISuccess('entityTag', 'get', ['entity_id' => $contactId]);
+    $this->assertEquals(1, $tags['count']);
+
+    $params['tag'] = '';
+    $result = $this->callAPISuccess('profile', 'submit', $params);
+
+    $tags = $this->callAPISuccess('entityTag', 'get', ['entity_id' => $contactId]);
+    $this->assertEquals(0, $tags['count']);
+
+  }
+
+  /**
+   * Check success with a note.
+   */
+  public function testSubmitWithNote() {
+    $profileFieldValues = $this->_createIndividualContact();
+    $params = reset($profileFieldValues);
+    $contactId = key($profileFieldValues);
+    $params['profile_id'] = $this->_profileID;
+    $params['contact_id'] = $contactId;
+
+    $this->callAPISuccess('ufField', 'create', array(
+      'uf_group_id' => $this->_profileID,
+      'field_name' => 'note',
+      'visibility' => 'Public Pages and Listings',
+      'field_type' => 'Contact',
+      'label' => 'Note',
+    ));
+
+    $params['note'] = "Hello 123";
+    $this->callAPISuccess('profile', 'submit', $params);
+
+    $note = $this->callAPISuccessGetSingle('note', ['entity_id' => $contactId]);
+    $this->assertEquals("Hello 123", $note['note']);
+  }
+
+  /**
+   * Check handling a custom greeting.
+   */
+  public function testSubmitGreetingFields() {
+    $profileFieldValues = $this->_createIndividualContact();
+    $params = reset($profileFieldValues);
+    $contactId = key($profileFieldValues);
+    $params['profile_id'] = $this->_profileID;
+    $params['contact_id'] = $contactId;
+
+    $this->callAPISuccess('ufField', 'create', array(
+      'uf_group_id' => $this->_profileID,
+      'field_name' => 'email_greeting',
+      'visibility' => 'Public Pages and Listings',
+      'field_type' => 'Contact',
+      'label' => 'Email Greeting',
+    ));
+
+    $emailGreetings = array_column(civicrm_api3('OptionValue', 'get', ['option_group_id' => "email_greeting"])['values'], NULL, 'name');
+
+    $params['email_greeting'] = $emailGreetings['Customized']['value'];
+    // Custom greeting should be required
+    $this->callAPIFailure('profile', 'submit', $params);
+
+    $params['email_greeting_custom'] = 'Hello fool!';
+    $this->callAPISuccess('profile', 'submit', $params);
+
+    // Api3 will not return custom greeting field so resorting to this
+    $greeting = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $contactId, 'email_greeting_custom');
+
+    $this->assertEquals("Hello fool!", $greeting);
   }
 
   /**

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2017                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -161,8 +161,12 @@ function civicrm_api3_setting_getoptions($params) {
     return civicrm_api3_create_success($values, $params, 'Setting', 'getoptions');
   }
   elseif (!empty($pseudoconstant['optionGroupName'])) {
+    $keyColumn = 'value';
+    if (!empty($pseudoconstant['keyColumn'])) {
+      $keyColumn = $pseudoconstant['keyColumn'];
+    }
     return civicrm_api3_create_success(
-      CRM_Core_OptionGroup::values($pseudoconstant['optionGroupName'], FALSE, FALSE, TRUE),
+      CRM_Core_OptionGroup::values($pseudoconstant['optionGroupName'], FALSE, FALSE, TRUE, NULL, 'label', TRUE, FALSE, $keyColumn),
       $params, 'Setting', 'getoptions'
     );
   }
@@ -313,7 +317,7 @@ function _civicrm_api3_setting_create_spec(&$params) {
  */
 function civicrm_api3_setting_get($params) {
   $domains = _civicrm_api3_setting_getDomainArray($params);
-  $result = $result = CRM_Core_BAO_Setting::getItems($params, $domains, CRM_Utils_Array::value('return', $params, array()));
+  $result = CRM_Core_BAO_Setting::getItems($params, $domains, CRM_Utils_Array::value('return', $params, array()));
   return civicrm_api3_create_success($result, $params, 'Setting', 'get');
 }
 /**

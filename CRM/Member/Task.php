@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  * $Id$
  *
  */
@@ -101,6 +101,16 @@ class CRM_Member_Task extends CRM_Core_Task {
           'title' => ts('Print/merge document for memberships'),
           'class' => 'CRM_Member_Form_Task_PDFLetter',
           'result' => FALSE,
+        ),
+        self::SAVE_SEARCH => array(
+          'title' => ts('Group - create smart group'),
+          'class' => 'CRM_Contact_Form_Task_SaveSearch',
+          'result' => TRUE,
+        ),
+        self::SAVE_SEARCH_UPDATE => array(
+          'title' => ts('Group - update smart group'),
+          'class' => 'CRM_Contact_Form_Task_SaveSearch_Update',
+          'result' => TRUE,
         ),
       );
 

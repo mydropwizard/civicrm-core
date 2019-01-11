@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  * $Id$
  *
  */
@@ -115,7 +115,6 @@ class CRM_Custom_Form_Option extends CRM_Core_Form {
 
       if ($fieldDefaults['html_type'] == 'CheckBox'
         || $fieldDefaults['html_type'] == 'Multi-Select'
-        || $fieldDefaults['html_type'] == 'AdvMulti-Select'
       ) {
         if (!empty($fieldDefaults['default_value'])) {
           $defaultCheckValues = explode(CRM_Core_DAO::VALUE_SEPARATOR,
@@ -434,7 +433,6 @@ SELECT count(*)
       $customField->find(TRUE) &&
       (
         $customField->html_type == 'CheckBox' ||
-        $customField->html_type == 'AdvMulti-Select' ||
         $customField->html_type == 'Multi-Select'
       )
     ) {

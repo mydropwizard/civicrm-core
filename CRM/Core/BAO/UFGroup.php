@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -116,8 +116,8 @@ class CRM_Core_BAO_UFGroup extends CRM_Core_DAO_UFGroup {
    * @param bool $is_active
    *   Value we want to set the is_active field.
    *
-   * @return Object
-   *   CRM_Core_DAO_UFGroup object on success, null otherwise
+   * @return bool
+   *   true if we found and updated the object, else false
    */
   public static function setIsActive($id, $is_active) {
     return CRM_Core_DAO::setFieldValue('CRM_Core_DAO_UFGroup', $id, 'is_active', $is_active);
@@ -1321,7 +1321,6 @@ class CRM_Core_BAO_UFGroup extends CRM_Core_DAO_UFGroup {
           elseif (in_array($htmlType, array(
             'CheckBox',
             'Multi-Select',
-            'AdvMulti-Select',
             'Multi-Select State/Province',
             'Multi-Select Country',
           ))) {
@@ -1674,12 +1673,12 @@ AND    ( entity_id IS NULL OR entity_id <= 0 )
   public static function getModuleUFGroup($moduleName = NULL, $count = 0, $skipPermission = TRUE, $op = CRM_Core_Permission::VIEW, $returnFields = NULL) {
     $selectFields = array('id', 'title', 'created_id', 'is_active', 'is_reserved', 'group_type');
 
-    if (CRM_Core_DAO::checkFieldExists('civicrm_uf_group', 'description')) {
+    if (CRM_Core_BAO_SchemaHandler::checkIfFieldExists('civicrm_uf_group', 'description')) {
       // CRM-13555, since description field was added later (4.4), and to avoid any problems with upgrade
       $selectFields[] = 'description';
     }
 
-    if (CRM_Core_DAO::checkFieldExists('civicrm_uf_group', 'frontend_title')) {
+    if (CRM_Core_BAO_SchemaHandler::checkIfFieldExists('civicrm_uf_group', 'frontend_title')) {
       $selectFields[] = 'frontend_title';
     }
 
@@ -2388,7 +2387,6 @@ AND    ( entity_id IS NULL OR entity_id <= 0 )
             switch ($customFields[$customFieldId]['html_type']) {
               case 'Multi-Select State/Province':
               case 'Multi-Select Country':
-              case 'AdvMulti-Select':
               case 'Multi-Select':
                 $v = explode(CRM_Core_DAO::VALUE_SEPARATOR, $details[$name]);
                 foreach ($v as $item) {

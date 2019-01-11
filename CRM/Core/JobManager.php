@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -30,7 +30,7 @@
  * by every scheduled job (cron task) in CiviCRM.
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 class CRM_Core_JobManager {
 
@@ -141,12 +141,15 @@ class CRM_Core_JobManager {
       $params = $job->apiParams;
     }
 
+    CRM_Utils_Hook::preJob($job, $params);
     try {
       $result = civicrm_api($job->api_entity, $job->api_action, $params);
     }
     catch (Exception$e) {
       $this->logEntry('Error while executing ' . $job->name . ': ' . $e->getMessage());
+      $result = $e;
     }
+    CRM_Utils_Hook::postJob($job, $params, $result);
     $this->logEntry('Finished execution of ' . $job->name . ' with result: ' . $this->_apiResultToMessage($result));
     $this->currentJob = FALSE;
 
@@ -226,10 +229,21 @@ class CRM_Core_JobManager {
     $dao = new CRM_Core_DAO_JobLog();
 
     $dao->domain_id = $domainID;
-    $dao->description = substr($message, 0, 235);
-    if (strlen($message) > 235) {
-      $dao->description .= " (...)";
+
+    /*
+     * The description is a summary of the message.
+     * HTML tags are stripped from the message.
+     * The description is limited to 240 characters
+     * and has an ellipsis added if it is truncated.
+     */
+    $maxDescription = 240;
+    $ellipsis = " (...)";
+    $description = strip_tags($message);
+    if (strlen($description) > $maxDescription) {
+      $description = substr($description, 0, $maxDescription - strlen($ellipsis)) . $ellipsis;
     }
+    $dao->description = $description;
+
     if ($this->currentJob) {
       $dao->job_id = $this->currentJob->id;
       $dao->name = $this->currentJob->name;

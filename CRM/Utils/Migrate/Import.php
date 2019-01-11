@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 class CRM_Utils_Migrate_Import {
   /**
@@ -241,6 +241,15 @@ WHERE      v.option_group_id = %1
             }
             elseif (in_array($customGroup->extends, array('Individual', 'Organization', 'Household'))) {
               $valueIDs = $optionValues;
+            }
+            elseif (in_array($customGroup->extends, array('Contribution', 'ContributionRecur'))) {
+              $sql = "SELECT id
+                      FROM civicrm_financial_type
+                      WHERE name IN ('{$optValues}')";
+              $dao = &CRM_Core_DAO::executeQuery($sql);
+              while ($dao->fetch()) {
+                $valueIDs[] = $dao->id;
+              }
             }
             else {
               $sql = "

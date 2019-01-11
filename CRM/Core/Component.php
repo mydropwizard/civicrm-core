@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -30,7 +30,7 @@
  * CiviCRM components
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  * $Id$
  *
  */
@@ -47,7 +47,7 @@ class CRM_Core_Component {
   /**
    * @param bool $force
    *
-   * @return array|null
+   * @return CRM_Core_Component_Info[]
    */
   private static function &_info($force = FALSE) {
     if (!isset(Civi::$statics[__CLASS__]['info'])|| $force) {
@@ -84,7 +84,7 @@ class CRM_Core_Component {
   /**
    * @param bool $force
    *
-   * @return array
+   * @return CRM_Core_Component_Info[]
    * @throws Exception
    */
   public static function &getComponents($force = FALSE) {
@@ -132,7 +132,7 @@ class CRM_Core_Component {
   /**
    * @param bool $force
    *
-   * @return array|null
+   * @return CRM_Core_Component_Info[]
    */
   static public function &getEnabledComponents($force = FALSE) {
     return self::_info($force);

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
  * Provides a collection of static methods for array manipulation.
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 class CRM_Utils_Array {
 
@@ -238,9 +238,7 @@ class CRM_Utils_Array {
         self::flatten($value, $flat, $newPrefix, $seperator);
       }
       else {
-        if (!empty($value)) {
-          $flat[$newPrefix] = $value;
-        }
+        $flat[$newPrefix] = $value;
       }
     }
   }
@@ -866,9 +864,13 @@ class CRM_Utils_Array {
    * This is necessary to preserve sort order when sending an array through json_encode.
    *
    * @param array $associative
+   *   Ex: ['foo' => 'bar'].
    * @param string $keyName
+   *   Ex: 'key'.
    * @param string $valueName
+   *   Ex: 'value'.
    * @return array
+   *   Ex: [0 => ['key' => 'foo', 'value' => 'bar']].
    */
   public static function makeNonAssociative($associative, $keyName = 'key', $valueName = 'value') {
     $output = array();
@@ -965,38 +967,58 @@ class CRM_Utils_Array {
   }
 
   /**
-   * Get a single value from an array-tre.
+   * Get a single value from an array-tree.
    *
-   * @param array $arr
-   *   Ex: array('foo'=>array('bar'=>123)).
-   * @param array $pathParts
-   *   Ex: array('foo',bar').
-   * @return mixed|NULL
+   * @param array $values
+   *   Ex: ['foo' => ['bar' => 123]].
+   * @param array $path
+   *   Ex: ['foo', 'bar'].
+   * @param mixed $default
+   * @return mixed
    *   Ex 123.
    */
-  public static function pathGet($arr, $pathParts) {
-    $r = $arr;
-    foreach ($pathParts as $part) {
-      if (!isset($r[$part])) {
-        return NULL;
+  public static function pathGet($values, $path, $default = NULL) {
+    foreach ($path as $key) {
+      if (!is_array($values) || !isset($values[$key])) {
+        return $default;
       }
-      $r = $r[$part];
+      $values = $values[$key];
     }
-    return $r;
+    return $values;
+  }
+
+  /**
+   * Check if a key isset which may be several layers deep.
+   *
+   * This is a helper for when the calling function does not know how many layers deep
+   * the path array is so cannot easily check.
+   *
+   * @param array $values
+   * @param array $path
+   * @return bool
+   */
+  public static function pathIsset($values, $path) {
+    foreach ($path as $key) {
+      if (!is_array($values) || !isset($values[$key])) {
+        return FALSE;
+      }
+      $values = $values[$key];
+    }
+    return TRUE;
   }
 
   /**
    * Set a single value in an array tree.
    *
-   * @param array $arr
-   *   Ex: array('foo'=>array('bar'=>123)).
+   * @param array $values
+   *   Ex: ['foo' => ['bar' => 123]].
    * @param array $pathParts
-   *   Ex: array('foo',bar').
+   *   Ex: ['foo', 'bar'].
    * @param $value
    *   Ex: 456.
    */
-  public static function pathSet(&$arr, $pathParts, $value) {
-    $r = &$arr;
+  public static function pathSet(&$values, $pathParts, $value) {
+    $r = &$values;
     $last = array_pop($pathParts);
     foreach ($pathParts as $part) {
       if (!isset($r[$part])) {
@@ -1017,19 +1039,10 @@ class CRM_Utils_Array {
    * @param string $valueField
    *   Ex: 'value'.
    * @return array
-   *   Ex: array(
-   *     0 => array('key' => 'foo', 'value' => 'bar')
-   *   ).
+   * @deprecated
    */
   public static function toKeyValueRows($array, $keyField = 'key', $valueField = 'value') {
-    $result = array();
-    foreach ($array as $key => $value) {
-      $result[] = array(
-        $keyField => $key,
-        $valueField => $value,
-      );
-    }
-    return $result;
+    return self::makeNonAssociative($array, $keyField, $valueField);
   }
 
   /**
@@ -1150,51 +1163,6 @@ class CRM_Utils_Array {
       }
     }
     return NULL;
-  }
-
-  /**
-   * Check if a key isset which may be several layers deep.
-   *
-   * This is a helper for when the calling function does not know how many layers deep the
-   * path array is so cannot easily check.
-   *
-   * @param array $array
-   * @param array $path
-   * @return bool
-   * @throws \CRM_Core_Exception
-   */
-  public static function recursiveIsset($array, $path) {
-    foreach ($path as $key) {
-      if (!is_array($array) || !isset($array[$key])) {
-        return FALSE;
-      }
-      $array = $array[$key];
-    }
-    return TRUE;
-  }
-
-  /**
-   * Check if a key isset which may be several layers deep.
-   *
-   * This is a helper for when the calling function does not know how many layers deep the
-   * path array is so cannot easily check.
-   *
-   * @param array $array
-   * @param array $path
-   *   An array of keys - e.g [0, 'bob', 8] where we want to check if $array[0]['bob'][8]
-   * @param mixed $default
-   *   Value to return if not found.
-   * @return bool
-   * @throws \CRM_Core_Exception
-   */
-  public static function recursiveValue($array, $path, $default = NULL) {
-    foreach ($path as $key) {
-      if (!is_array($array) || !isset($array[$key])) {
-        return $default;
-      }
-      $array = $array[$key];
-    }
-    return $array;
   }
 
 }

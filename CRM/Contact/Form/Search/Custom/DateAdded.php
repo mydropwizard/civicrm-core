@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 class CRM_Contact_Form_Search_Custom_DateAdded extends CRM_Contact_Form_Search_Custom_Base implements CRM_Contact_Form_Search_Interface {
 
@@ -36,13 +36,15 @@ class CRM_Contact_Form_Search_Custom_DateAdded extends CRM_Contact_Form_Search_C
   protected $_aclFrom = NULL;
   protected $_aclWhere = NULL;
 
+  protected $_datesTable = NULL, $_xgTable = NULL, $_igTable = NULL;
+
   /**
    * Class constructor.
    *
    * @param array $formValues
    */
   public function __construct(&$formValues) {
-    parent::__construct($formValues);
+    $this->_formValues = self::formatSavedSearchFields($formValues);
 
     $this->_includeGroups = CRM_Utils_Array::value('includeGroups', $formValues, array());
     $this->_excludeGroups = CRM_Utils_Array::value('excludeGroups', $formValues, array());
@@ -59,8 +61,8 @@ class CRM_Contact_Form_Search_Custom_DateAdded extends CRM_Contact_Form_Search_C
    * @param CRM_Core_Form $form
    */
   public function buildForm(&$form) {
-    $form->addDate('start_date', ts('Start Date'), FALSE, array('formatType' => 'custom'));
-    $form->addDate('end_date', ts('End Date'), FALSE, array('formatType' => 'custom'));
+    $form->add('datepicker', 'start_date', ts('Start Date'), [], FALSE, array('time' => FALSE));
+    $form->add('datepicker', 'end_date', ts('End Date'), [], FALSE, array('time' => FALSE));
 
     $groups = CRM_Core_PseudoConstant::nestedGroup();
 
@@ -177,11 +179,12 @@ class CRM_Contact_Form_Search_Custom_DateAdded extends CRM_Contact_Form_Search_C
    */
   public function from() {
     //define table name
-    $randomNum = md5(uniqid());
-    $this->_tableName = "civicrm_temp_custom_{$randomNum}";
+    $this->_datesTable = CRM_Utils_SQL_TempTable::build()->setCategory('dates')->getName();
+    $this->_xgTable = CRM_Utils_SQL_TempTable::build()->setCategory('xg')->getName();
+    $this->_igTable = CRM_Utils_SQL_TempTable::build()->setCategory('ig')->getName();
 
     //grab the contacts added in the date range first
-    $sql = "CREATE TEMPORARY TABLE dates_{$this->_tableName} ( id int primary key, date_added date ) ENGINE=HEAP";
+    $sql = "CREATE TEMPORARY TABLE {$this->_datesTable} ( id int primary key, date_added date ) ENGINE=HEAP";
     if ($this->_debug > 0) {
       print "-- Date range query: <pre>";
       print "$sql;";
@@ -189,15 +192,14 @@ class CRM_Contact_Form_Search_Custom_DateAdded extends CRM_Contact_Form_Search_C
     }
     CRM_Core_DAO::executeQuery($sql);
 
-    $startDate = CRM_Utils_Date::mysqlToIso(CRM_Utils_Date::processDate($this->_formValues['start_date']));
+    $startDate = !empty($this->_formValues['start_date']) ? $this->_formValues['start_date'] : date('Y-m-d');
     $endDateFix = NULL;
     if (!empty($this->_formValues['end_date'])) {
-      $endDate = CRM_Utils_Date::mysqlToIso(CRM_Utils_Date::processDate($this->_formValues['end_date']));
       # tack 11:59pm on to make search inclusive of the end date
-      $endDateFix = "AND date_added <= '" . substr($endDate, 0, 10) . " 23:59:00'";
+      $endDateFix = "AND date_added <= '{$this->_formValues['end_date']} 23:59:00'";
     }
 
-    $dateRange = "INSERT INTO dates_{$this->_tableName} ( id, date_added )
+    $dateRange = "INSERT INTO {$this->_datesTable} ( id, date_added )
           SELECT
               civicrm_contact.id,
               min(civicrm_log.modified_date) AS date_added
@@ -208,7 +210,7 @@ class CRM_Contact_Form_Search_Custom_DateAdded extends CRM_Contact_Form_Search_C
           GROUP BY
               civicrm_contact.id
           HAVING
-              date_added >= '$startDate'
+              date_added >= '$startDate 00:00:00'
               $endDateFix";
 
     if ($this->_debug > 0) {
@@ -249,16 +251,16 @@ class CRM_Contact_Form_Search_Custom_DateAdded extends CRM_Contact_Form_Search_C
         $xGroups = 0;
       }
 
-      $sql = "DROP TEMPORARY TABLE IF EXISTS Xg_{$this->_tableName}";
+      $sql = "DROP TEMPORARY TABLE IF EXISTS {$this->_xgTable}";
       CRM_Core_DAO::executeQuery($sql, CRM_Core_DAO::$_nullArray);
-      $sql = "CREATE TEMPORARY TABLE Xg_{$this->_tableName} ( contact_id int primary key) ENGINE=HEAP";
+      $sql = "CREATE TEMPORARY TABLE {$this->_xgTable} ( contact_id int primary key) ENGINE=HEAP";
       CRM_Core_DAO::executeQuery($sql, CRM_Core_DAO::$_nullArray);
 
       //used only when exclude group is selected
       if ($xGroups != 0) {
-        $excludeGroup = "INSERT INTO  Xg_{$this->_tableName} ( contact_id )
+        $excludeGroup = "INSERT INTO  {$this->_xgTable} ( contact_id )
                   SELECT  DISTINCT civicrm_group_contact.contact_id
-                  FROM civicrm_group_contact, dates_{$this->_tableName} AS d
+                  FROM civicrm_group_contact, {$this->_datesTable} AS d
                   WHERE
                      d.id = civicrm_group_contact.contact_id AND
                      civicrm_group_contact.status = 'Added' AND
@@ -277,16 +279,16 @@ class CRM_Contact_Form_Search_Custom_DateAdded extends CRM_Contact_Form_Search_C
                               SELECT contact_id FROM civicrm_group_contact
                               WHERE civicrm_group_contact.group_id = {$values} AND civicrm_group_contact.status = 'Removed')";
 
-            $smartGroupQuery = " INSERT IGNORE INTO Xg_{$this->_tableName}(contact_id) $smartSql";
+            $smartGroupQuery = " INSERT IGNORE INTO {$this->_xgTable}(contact_id) $smartSql";
 
             CRM_Core_DAO::executeQuery($smartGroupQuery, CRM_Core_DAO::$_nullArray);
           }
         }
       }
 
-      $sql = "DROP TEMPORARY TABLE IF EXISTS Ig_{$this->_tableName}";
+      $sql = "DROP TEMPORARY TABLE IF EXISTS {$this->_igTable}";
       CRM_Core_DAO::executeQuery($sql, CRM_Core_DAO::$_nullArray);
-      $sql = "CREATE TEMPORARY TABLE Ig_{$this->_tableName}
+      $sql = "CREATE TEMPORARY TABLE {$this->_igTable}
                 ( id int PRIMARY KEY AUTO_INCREMENT,
                   contact_id int,
                   group_names varchar(64)) ENGINE=HEAP";
@@ -299,9 +301,9 @@ class CRM_Contact_Form_Search_Custom_DateAdded extends CRM_Contact_Form_Search_C
 
       CRM_Core_DAO::executeQuery($sql, CRM_Core_DAO::$_nullArray);
 
-      $includeGroup = "INSERT INTO Ig_{$this->_tableName} (contact_id, group_names)
+      $includeGroup = "INSERT INTO {$this->_igTable} (contact_id, group_names)
                  SELECT      d.id as contact_id, civicrm_group.name as group_name
-                 FROM        dates_{$this->_tableName} AS d
+                 FROM        {$this->_datesTable} AS d
                  INNER JOIN  civicrm_group_contact
                  ON          civicrm_group_contact.contact_id = d.id
                  LEFT JOIN   civicrm_group
@@ -309,8 +311,8 @@ class CRM_Contact_Form_Search_Custom_DateAdded extends CRM_Contact_Form_Search_C
 
       //used only when exclude group is selected
       if ($xGroups != 0) {
-        $includeGroup .= " LEFT JOIN        Xg_{$this->_tableName}
-                                          ON        d.id = Xg_{$this->_tableName}.contact_id";
+        $includeGroup .= " LEFT JOIN        {$this->_xgTable}
+                                          ON        d.id = {$this->_xgTable}.contact_id";
       }
       $includeGroup .= " WHERE
                                      civicrm_group_contact.status = 'Added'  AND
@@ -318,7 +320,7 @@ class CRM_Contact_Form_Search_Custom_DateAdded extends CRM_Contact_Form_Search_C
 
       //used only when exclude group is selected
       if ($xGroups != 0) {
-        $includeGroup .= " AND  Xg_{$this->_tableName}.contact_id IS null";
+        $includeGroup .= " AND  {$this->_xgTable}.contact_id IS null";
       }
 
       if ($this->_debug > 0) {
@@ -339,7 +341,7 @@ class CRM_Contact_Form_Search_Custom_DateAdded extends CRM_Contact_Form_Search_C
 
           $smartSql .= " AND contact_a.id IN (
                                    SELECT id AS contact_id
-                                   FROM dates_{$this->_tableName} )";
+                                   FROM {$this->_datesTable} )";
 
           $smartSql .= " AND contact_a.id NOT IN (
                                    SELECT contact_id FROM civicrm_group_contact
@@ -347,11 +349,11 @@ class CRM_Contact_Form_Search_Custom_DateAdded extends CRM_Contact_Form_Search_C
 
           //used only when exclude group is selected
           if ($xGroups != 0) {
-            $smartSql .= " AND contact_a.id NOT IN (SELECT contact_id FROM  Xg_{$this->_tableName})";
+            $smartSql .= " AND contact_a.id NOT IN (SELECT contact_id FROM  {$this->_xgTable})";
           }
 
           $smartGroupQuery = " INSERT IGNORE INTO
-                        Ig_{$this->_tableName}(contact_id)
+                        {$this->_igTable}(contact_id)
                         $smartSql";
 
           CRM_Core_DAO::executeQuery($smartGroupQuery, CRM_Core_DAO::$_nullArray);
@@ -360,11 +362,11 @@ class CRM_Contact_Form_Search_Custom_DateAdded extends CRM_Contact_Form_Search_C
             print "$smartGroupQuery;";
             print "</pre>";
           }
-          $insertGroupNameQuery = "UPDATE IGNORE Ig_{$this->_tableName}
+          $insertGroupNameQuery = "UPDATE IGNORE {$this->_igTable}
                         SET group_names = (SELECT title FROM civicrm_group
                             WHERE civicrm_group.id = $values)
-                        WHERE Ig_{$this->_tableName}.contact_id IS NOT NULL
-                            AND Ig_{$this->_tableName}.group_names IS NULL";
+                        WHERE {$this->_igTable}.contact_id IS NOT NULL
+                            AND {$this->_igTable}.group_names IS NULL";
           CRM_Core_DAO::executeQuery($insertGroupNameQuery, CRM_Core_DAO::$_nullArray);
           if ($this->_debug > 0) {
             print "-- Smart group query: <pre>";
@@ -380,12 +382,12 @@ class CRM_Contact_Form_Search_Custom_DateAdded extends CRM_Contact_Form_Search_C
 
     /* We need to join to this again to get the date_added value */
 
-    $from .= " INNER JOIN dates_{$this->_tableName} d ON (contact_a.id = d.id) {$this->_aclFrom}";
+    $from .= " INNER JOIN {$this->_datesTable} d ON (contact_a.id = d.id) {$this->_aclFrom}";
 
     // Only include groups in the search query of one or more Include OR Exclude groups has been selected.
     // CRM-6356
     if ($this->_groups) {
-      $from .= " INNER JOIN Ig_{$this->_tableName} temptable1 ON (contact_a.id = temptable1.contact_id)";
+      $from .= " INNER JOIN {$this->_igTable} temptable1 ON (contact_a.id = temptable1.contact_id)";
     }
 
     return $from;
@@ -437,13 +439,13 @@ class CRM_Contact_Form_Search_Custom_DateAdded extends CRM_Contact_Form_Search_C
 
   public function __destruct() {
     //drop the temp. tables if they exist
-    if (!empty($this->_includeGroups)) {
-      $sql = "DROP TEMPORARY TABLE IF EXISTS Ig_{$this->_tableName}";
+    if ($this->_igTable && !empty($this->_includeGroups)) {
+      $sql = "DROP TEMPORARY TABLE IF EXISTS {$this->_igTable}";
       CRM_Core_DAO::executeQuery($sql, CRM_Core_DAO::$_nullArray);
     }
 
-    if (!empty($this->_excludeGroups)) {
-      $sql = "DROP TEMPORARY TABLE IF EXISTS  Xg_{$this->_tableName}";
+    if ($this->_xgTable && !empty($this->_excludeGroups)) {
+      $sql = "DROP TEMPORARY TABLE IF EXISTS {$this->_xgTable}";
       CRM_Core_DAO::executeQuery($sql, CRM_Core_DAO::$_nullArray);
     }
   }
@@ -453,6 +455,29 @@ class CRM_Contact_Form_Search_Custom_DateAdded extends CRM_Contact_Form_Search_C
    */
   public function buildACLClause($tableAlias = 'contact') {
     list($this->_aclFrom, $this->_aclWhere) = CRM_Contact_BAO_Contact_Permission::cacheClause($tableAlias);
+  }
+
+  /**
+   * Format saved search fields for this custom group.
+   *
+   * Note this is a function to facilitate the transition to jcalendar for
+   * saved search groups. In time it can be stripped out again.
+   *
+   * @param array $formValues
+   *
+   * @return array
+   */
+  public static function formatSavedSearchFields($formValues) {
+    $dateFields = array(
+      'start_date',
+      'end_date',
+    );
+    foreach ($formValues as $element => $value) {
+      if (in_array($element, $dateFields) && !empty($value)) {
+        $formValues[$element] = date('Y-m-d', strtotime($value));
+      }
+    }
+    return $formValues;
   }
 
 }

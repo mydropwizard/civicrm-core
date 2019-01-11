@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -317,6 +317,14 @@ class CRM_Core_BAO_Domain extends CRM_Core_DAO_Domain {
     // If still empty fall back to the logged in user details.
     // return empty values no matter what.
     return array($userName, $userEmail);
+  }
+
+  /**
+   * Get address to be used for system from addresses when a reply is not expected.
+   */
+  public static function getNoReplyEmailAddress() {
+    $emailDomain = CRM_Core_BAO_MailSettings::defaultDomain();
+    return "do-not-reply@$emailDomain";
   }
 
 }

@@ -2,7 +2,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -33,6 +33,8 @@
   $.datepicker._defaults.dateFormat = CRM.config.dateInputFormat = {$config->dateInputFormat|@json_encode};
   CRM.config.timeIs24Hr = {if $config->timeInputFormat eq 2}true{else}false{/if};
   CRM.config.ajaxPopupsEnabled = {$ajaxPopupsEnabled|@json_encode};
+  CRM.config.allowAlertAutodismissal = {$allowAlertAutodismissal|@json_encode};
+  CRM.config.resourceCacheCode = {$resourceCacheCode|@json_encode};
 
   // Merge entityRef settings
   CRM.config.entityRef = $.extend({ldelim}{rdelim}, {$entityRef|@json_encode}, CRM.config.entityRef || {ldelim}{rdelim});

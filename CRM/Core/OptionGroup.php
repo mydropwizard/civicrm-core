@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 class CRM_Core_OptionGroup {
   static $_values = array();
@@ -129,9 +129,9 @@ class CRM_Core_OptionGroup {
         return self::$_cache[$cacheKey];
       }
       // Fetch from main cache
-      $var = $cache->get($cacheKey);
-      if ($var) {
-        return $var;
+      self::$_cache[$cacheKey] = $cache->get($cacheKey);
+      if (self::$_cache[$cacheKey] !== NULL) {
+        return self::$_cache[$cacheKey];
       }
     }
 
@@ -200,8 +200,8 @@ WHERE  v.option_group_id = g.id
   /**
    * @return string
    */
-  protected static function createCacheKey() {
-    $cacheKey = "CRM_OG_" . serialize(func_get_args());
+  protected static function createCacheKey($id) {
+    $cacheKey = "CRM_OG_" . preg_replace('/[^a-zA-Z0-9]/', '', $id) . '_' . md5(serialize(func_get_args()));
     return $cacheKey;
   }
 
@@ -234,9 +234,9 @@ WHERE  v.option_group_id = g.id
 
     $cache = CRM_Utils_Cache::singleton();
     if (!$fresh) {
-      $var = $cache->get($cacheKey);
-      if ($var) {
-        return $var;
+      self::$_cache[$cacheKey] = $cache->get($cacheKey);
+      if (self::$_cache[$cacheKey] !== NULL) {
+        return self::$_cache[$cacheKey];
       }
     }
     $query = "
@@ -342,7 +342,7 @@ WHERE  v.option_group_id = g.id
    * @return null
    */
   public static function getLabel($groupName, $value, $onlyActiveValue = TRUE) {
-    Civi::log()->warning('Deprecated function CRM_Core_OptionGroup::getLabel, use CRM_Core_PseudoConstant::getLabel', array('civi.tag' => 'deprecated'));
+    CRM_Core_Error::deprecatedFunctionWarning('CRM_Core_PseudoConstant::getLabel');
     if (empty($groupName) ||
       empty($value)
     ) {
@@ -396,7 +396,7 @@ WHERE  v.option_group_id = g.id
       return NULL;
     }
 
-    Civi::log()->warning('Deprecated function CRM_Core_OptionGroup::getValue, use CRM_Core_PseudoConstant::getKey', array('civi.tag' => 'deprecated'));
+    CRM_Core_Error::deprecatedFunctionWarning('CRM_Core_PseudoConstant::getKey');
 
     $query = "
 SELECT  v.label as label ,v.{$valueField} as value

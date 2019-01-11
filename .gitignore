@@ -1,6 +1,7 @@
 *~
 *.bak
 .use-civicrm-setup
+/ext/
 backdrop/
 bower_components
 CRM/Case/xml/configuration
@@ -41,3 +42,4 @@ civicrm.settings.php
 sql/dummy_processor.mysql
 distmaker/distmaker.conf
 distmaker/out
+/tmp

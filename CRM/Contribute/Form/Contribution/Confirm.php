@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -740,21 +740,18 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
    *
    * Comments from previous refactor indicate doubt as to what was going on.
    *
-   * @param int $contributionTypeId
+   * @param int $financialTypeID
    *
    * @return null|string
    */
-  public function wrangleFinancialTypeID($contributionTypeId) {
-    if (isset($paymentParams['financial_type'])) {
-      $contributionTypeId = $paymentParams['financial_type'];
-    }
-    elseif (!empty($this->_values['pledge_id'])) {
-      $contributionTypeId = CRM_Core_DAO::getFieldValue('CRM_Pledge_DAO_Pledge',
+  public function wrangleFinancialTypeID($financialTypeID) {
+    if (empty($financialTypeID) && !empty($this->_values['pledge_id'])) {
+      $financialTypeID = CRM_Core_DAO::getFieldValue('CRM_Pledge_DAO_Pledge',
         $this->_values['pledge_id'],
         'financial_type_id'
       );
     }
-    return $contributionTypeId;
+    return $financialTypeID;
   }
 
   /**
@@ -1845,7 +1842,7 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
    *
    * Ie the membership block supports a separate transactions AND the contribution form has been configured for a
    * contribution
-   * transaction AND a membership transaction AND the payment processor supports double financial transactions (ie. NOT doTransferPayment style)
+   * transaction AND a membership transaction AND the payment processor supports double financial transactions (ie. NOT doTransferCheckout style)
    *
    * @param int $formID
    * @param bool $amountBlockActiveOnForm
@@ -1971,8 +1968,11 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
       $capabilities[] = (ucfirst($form->_mode) . 'Mode');
     }
     $form->_paymentProcessors = CRM_Financial_BAO_PaymentProcessor::getPaymentProcessors($capabilities);
-    $form->_params['payment_processor_id'] = !empty($params['payment_processor_id']) ? $params['payment_processor_id'] : 0;
-    $form->_paymentProcessor = $form->_paymentProcessors[$form->_params['payment_processor_id']];
+    $form->_params['payment_processor_id'] = isset($params['payment_processor_id']) ? $params['payment_processor_id'] : 0;
+    if ($form->_params['payment_processor_id'] !== '') {
+      // It can be blank with a $0 transaction - then no processor needs to be selected
+      $form->_paymentProcessor = $form->_paymentProcessors[$form->_params['payment_processor_id']];
+    }
     if (!empty($params['payment_processor_id'])) {
       // The concept of contributeMode is deprecated as is the billing_mode concept.
       if ($form->_paymentProcessor['billing_mode'] == 1) {
@@ -1997,6 +1997,7 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
       }
     }
     $form->set('memberPriceFieldIDS', $membershipPriceFieldIDs);
+    $form->setRecurringMembershipParams();
     $form->processFormSubmission(CRM_Utils_Array::value('contact_id', $params));
   }
 
@@ -2016,7 +2017,7 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
       if (!empty($params['payment_processor_id'])) {
         $params['is_pay_later'] = 0;
       }
-      else {
+      elseif ($params['amount'] !== 0) {
         $params['is_pay_later'] = civicrm_api3('contribution_page', 'getvalue', array(
           'id' => $id,
           'return' => 'is_pay_later',
@@ -2336,7 +2337,7 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
         $this->postProcessPremium($premiumParams, $result['contribution']);
       }
       if (!empty($result['contribution'])) {
-        // Not quite sure why it would be empty at this stage but tests show it can be ... at least in tests.
+        // It seems this line is hit when there is a zero dollar transaction & in tests, not sure when else.
         $this->completeTransaction($result, $result['contribution']->id);
       }
       return $result;
@@ -2395,26 +2396,19 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
     $priceFieldIds = $this->get('memberPriceFieldIDS');
 
     if (!empty($priceFieldIds)) {
-      $financialTypeID = CRM_Core_DAO::getFieldValue('CRM_Price_DAO_PriceSet', $priceFieldIds['id'], 'financial_type_id');
+      $membershipParams['financial_type_id'] = CRM_Core_DAO::getFieldValue('CRM_Price_DAO_PriceSet', $priceFieldIds['id'], 'financial_type_id');
       unset($priceFieldIds['id']);
       $membershipTypeIds = array();
       $membershipTypeTerms = array();
       foreach ($priceFieldIds as $priceFieldId) {
-        if ($id = CRM_Core_DAO::getFieldValue('CRM_Price_DAO_PriceFieldValue', $priceFieldId, 'membership_type_id')) {
-          $membershipTypeIds[] = $id;
-          //@todo the value for $term is immediately overwritten. It is unclear from the code whether it was intentional to
-          // do this or a double = was intended (this ambiguity is the reason many IDEs complain about 'assignment in condition'
-          $term = 1;
-          if ($term = CRM_Core_DAO::getFieldValue('CRM_Price_DAO_PriceFieldValue', $priceFieldId, 'membership_num_terms')) {
-            $membershipTypeTerms[$id] = ($term > 1) ? $term : 1;
-          }
-          else {
-            $membershipTypeTerms[$id] = 1;
-          }
+        $membershipTypeId = CRM_Core_DAO::getFieldValue('CRM_Price_DAO_PriceFieldValue', $priceFieldId, 'membership_type_id');
+        if ($membershipTypeId) {
+          $membershipTypeIds[] = $membershipTypeId;
+          $term = CRM_Core_DAO::getFieldValue('CRM_Price_DAO_PriceFieldValue', $priceFieldId, 'membership_num_terms') ?: 1;
+          $membershipTypeTerms[$membershipTypeId] = ($term > 1) ? $term : 1;
         }
       }
       $membershipParams['selectMembership'] = $membershipTypeIds;
-      $membershipParams['financial_type_id'] = $financialTypeID;
       $membershipParams['types_terms'] = $membershipTypeTerms;
     }
     if (!empty($membershipParams['selectMembership'])) {
@@ -2476,7 +2470,7 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
         civicrm_api3('contribution', 'completetransaction', array(
           'id' => $contributionID,
           'trxn_id' => CRM_Utils_Array::value('trxn_id', $result),
-          'payment_processor_id' => $this->_paymentProcessor['id'],
+          'payment_processor_id' => CRM_Utils_Array::value('payment_processor_id', $result, $this->_paymentProcessor['id']),
           'is_transactional' => FALSE,
           'fee_amount' => CRM_Utils_Array::value('fee_amount', $result),
           'receive_date' => CRM_Utils_Array::value('receive_date', $result),

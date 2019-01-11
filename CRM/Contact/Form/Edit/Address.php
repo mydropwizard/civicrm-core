@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -413,7 +413,7 @@ class CRM_Contact_Form_Edit_Address {
       // since we change element name for address custom data, we need to format the setdefault values
       $addressDefaults = array();
       foreach ($defaults as $key => $val) {
-        if (empty($val)) {
+        if (!isset($val)) {
           continue;
         }
 

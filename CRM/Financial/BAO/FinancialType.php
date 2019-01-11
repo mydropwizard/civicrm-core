@@ -3,7 +3,7 @@
   +--------------------------------------------------------------------+
   | CiviCRM version 5                                                  |
   +--------------------------------------------------------------------+
-  | Copyright CiviCRM LLC (c) 2004-2018                                |
+  | Copyright CiviCRM LLC (c) 2004-2019                                |
   +--------------------------------------------------------------------+
   | This file is a part of CiviCRM.                                    |
   |                                                                    |
@@ -28,14 +28,10 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 class CRM_Financial_BAO_FinancialType extends CRM_Financial_DAO_FinancialType {
 
-  /**
-   * Static holder for the default LT.
-   */
-  static $_defaultContributionType = NULL;
   /**
    * Static cache holder of available financial types for this session
    */
@@ -60,7 +56,7 @@ class CRM_Financial_BAO_FinancialType extends CRM_Financial_DAO_FinancialType {
    * @param array $defaults
    *   (reference ) an assoc array to hold the flattened values.
    *
-   * @return CRM_Contribute_BAO_ContributionType
+   * @return CRM_Financial_DAO_FinancialType
    */
   public static function retrieve(&$params, &$defaults) {
     $financialType = new CRM_Financial_DAO_FinancialType();
@@ -80,8 +76,7 @@ class CRM_Financial_BAO_FinancialType extends CRM_Financial_DAO_FinancialType {
    * @param bool $is_active
    *   Value we want to set the is_active field.
    *
-   * @return Object
-   *   DAO object on success, null otherwise
+   * @return bool
    */
   public static function setIsActive($id, $is_active) {
     return CRM_Core_DAO::setFieldValue('CRM_Financial_DAO_FinancialType', $id, 'is_active', $is_active);
@@ -139,7 +134,7 @@ class CRM_Financial_BAO_FinancialType extends CRM_Financial_DAO_FinancialType {
     $financialType = new CRM_Financial_DAO_FinancialType();
     $financialType->id = $financialTypeId;
     $financialType->find(TRUE);
-    // tables to ingore checks for financial_type_id
+    // tables to ignore checks for financial_type_id
     $ignoreTables = array('CRM_Financial_DAO_EntityFinancialAccount');
 
     // TODO: if (!$financialType->find(true)) {
@@ -460,9 +455,12 @@ class CRM_Financial_BAO_FinancialType extends CRM_Financial_DAO_FinancialType {
   public static function isACLFinancialTypeStatus() {
     if (!isset(\Civi::$statics[__CLASS__]['is_acl_enabled'])) {
       \Civi::$statics[__CLASS__]['is_acl_enabled'] = FALSE;
-      $contributeSettings = Civi::settings()->get('contribution_invoice_settings');
-      if (CRM_Utils_Array::value('acl_financial_type', $contributeSettings)) {
-        \Civi::$statics[__CLASS__]['is_acl_enabled'] = TRUE;
+      $realSetting = \Civi::$statics[__CLASS__]['is_acl_enabled'] = Civi::settings()->get('acl_financial_type');
+      if (!$realSetting) {
+        $contributeSettings = Civi::settings()->get('contribution_invoice_settings');
+        if (CRM_Utils_Array::value('acl_financial_type', $contributeSettings)) {
+          \Civi::$statics[__CLASS__]['is_acl_enabled'] = TRUE;
+        }
       }
     }
     return \Civi::$statics[__CLASS__]['is_acl_enabled'];

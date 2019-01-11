@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -380,6 +380,57 @@ class CRM_Core_BAO_AddressTest extends CiviUnitTestCase {
     $this->assertEquals($parsedStreetAddress['street_number'], '123');
     $this->assertNotContains('street_unit', $parsedStreetAddress);
     $this->assertNotContains('street_number_suffix', $parsedStreetAddress);
+  }
+
+  /**
+   * @dataProvider supportedAddressParsingLocales
+   */
+  public function testIsSupportedByAddressParsingReturnTrueForSupportedLocales($locale) {
+    $isSupported = CRM_Core_BAO_Address::isSupportedParsingLocale($locale);
+    $this->assertTrue($isSupported);
+  }
+
+  /**
+   * @dataProvider supportedAddressParsingLocales
+   */
+  public function testIsSupportedByAddressParsingReturnTrueForSupportedDefaultLocales($locale) {
+    CRM_Core_Config::singleton()->lcMessages = $locale;
+    $isSupported = CRM_Core_BAO_Address::isSupportedParsingLocale();
+    $this->assertTrue($isSupported);
+
+  }
+
+  public function supportedAddressParsingLocales() {
+    return array(
+      array('en_US'),
+      array('en_CA'),
+      array('fr_CA'),
+    );
+  }
+
+  /**
+   * @dataProvider sampleOFUnsupportedAddressParsingLocales
+   */
+  public function testIsSupportedByAddressParsingReturnFalseForUnSupportedLocales($locale) {
+    $isNotSupported = CRM_Core_BAO_Address::isSupportedParsingLocale($locale);
+    $this->assertFalse($isNotSupported);
+  }
+
+  /**
+   * @dataProvider sampleOFUnsupportedAddressParsingLocales
+   */
+  public function testIsSupportedByAddressParsingReturnFalseForUnSupportedDefaultLocales($locale) {
+    CRM_Core_Config::singleton()->lcMessages = $locale;
+    $isNotSupported = CRM_Core_BAO_Address::isSupportedParsingLocale();
+    $this->assertFalse($isNotSupported);
+  }
+
+  public function sampleOFUnsupportedAddressParsingLocales() {
+    return array(
+      array('en_GB'),
+      array('af_ZA'),
+      array('da_DK'),
+    );
   }
 
   /**

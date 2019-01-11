@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -339,6 +339,7 @@ class CRM_Core_ResourcesTest extends CiviUnitTestCase {
   public function ajaxModeData() {
     return array(
       array(array('q' => 'civicrm/ajax/foo'), TRUE),
+      array(array('q' => 'civicrm/angularprofiles/template'), TRUE),
       array(array('q' => 'civicrm/test/page'), FALSE),
       array(array('q' => 'civicrm/test/page', 'snippet' => 'json'), TRUE),
       array(array('q' => 'civicrm/test/page', 'snippet' => 'foo'), FALSE),

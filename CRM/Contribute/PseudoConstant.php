@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -380,6 +380,8 @@ class CRM_Contribute_PseudoConstant extends CRM_Core_PseudoConstant {
   /**
    * Get financial account for a Financial type.
    *
+   * @deprecated use the alternative with caching
+   * CRM_Financial_BAO_FinancialAccount::getFinancialAccountForFinancialTypeByRelationship
    *
    * @param int $entityId
    * @param string $accountRelationType

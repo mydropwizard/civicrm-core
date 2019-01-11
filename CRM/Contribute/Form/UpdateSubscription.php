@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -27,7 +27,7 @@
 
 /**
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -145,7 +145,7 @@ class CRM_Contribute_Form_UpdateSubscription extends CRM_Core_Form {
     $alreadyHardCodedFields = array('amount', 'installments');
     foreach ($this->editableScheduleFields as $editableScheduleField) {
       if (!in_array($editableScheduleField, $alreadyHardCodedFields)) {
-        $this->addField($editableScheduleField, array('entity' => 'ContributionRecur'));
+        $this->addField($editableScheduleField, array('entity' => 'ContributionRecur'), FALSE, FALSE);
       }
     }
 
@@ -257,7 +257,7 @@ class CRM_Contribute_Form_UpdateSubscription extends CRM_Core_Form {
 
     $params['subscriptionId'] = $this->_subscriptionDetails->subscription_id;
     $updateSubscription = TRUE;
-    if ($this->_paymentProcessorObj->isSupported('changeSubscriptionAmount')) {
+    if ($this->_paymentProcessorObj->supports('changeSubscriptionAmount')) {
       $updateSubscription = $this->_paymentProcessorObj->changeSubscriptionAmount($message, $params);
     }
     if (is_a($updateSubscription, 'CRM_Core_Error')) {

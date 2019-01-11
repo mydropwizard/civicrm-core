@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 class CRM_Event_BAO_Event extends CRM_Event_DAO_Event {
 
@@ -67,8 +67,8 @@ class CRM_Event_BAO_Event extends CRM_Event_DAO_Event {
    * @param bool $is_active
    *   Value we want to set the is_active field.
    *
-   * @return Object
-   *   DAO object on success, null otherwise
+   * @return bool
+   *   true if we found and updated the object, else false
    */
   public static function setIsActive($id, $is_active) {
     return CRM_Core_DAO::setFieldValue('CRM_Event_DAO_Event', $id, 'is_active', $is_active);
@@ -920,13 +920,11 @@ WHERE civicrm_event.is_active = 1
    * @param int $id
    *   The event id to copy.
    *        boolean $afterCreate call to copy after the create function
-   * @param null $newEvent
-   * @param bool $afterCreate
    *
    * @return CRM_Event_DAO_Event
+   * @throws \CRM_Core_Exception
    */
-  public static function copy($id, $newEvent = NULL, $afterCreate = FALSE) {
-
+  public static function copy($id) {
     $eventValues = array();
 
     //get the require event values.
@@ -941,30 +939,19 @@ WHERE civicrm_event.is_active = 1
 
     CRM_Core_DAO::commonRetrieve('CRM_Event_DAO_Event', $eventParams, $eventValues, $returnProperties);
 
-    // since the location is sharable, lets use the same loc_block_id.
-    $locBlockId = CRM_Utils_Array::value('loc_block_id', $eventValues);
-
-    $fieldsFix = ($afterCreate) ? array() : array('prefix' => array('title' => ts('Copy of') . ' '));
+    $fieldsFix = array('prefix' => array('title' => ts('Copy of') . ' '));
     if (empty($eventValues['is_show_location'])) {
       $fieldsFix['prefix']['is_show_location'] = 0;
     }
 
-    if ($newEvent && is_a($newEvent, 'CRM_Event_DAO_Event')) {
-      $copyEvent = $newEvent;
-    }
-
-    if (!isset($copyEvent)) {
-      $copyEvent = &CRM_Core_DAO::copyGeneric('CRM_Event_DAO_Event',
-        array('id' => $id),
-        array(
-          'loc_block_id' =>
-          ($locBlockId) ? $locBlockId : NULL,
-        ),
-        $fieldsFix
-      );
-    }
+    $copyEvent = CRM_Core_DAO::copyGeneric('CRM_Event_DAO_Event',
+      array('id' => $id),
+      // since the location is sharable, lets use the same loc_block_id.
+      array('loc_block_id' => CRM_Utils_Array::value('loc_block_id', $eventValues)),
+      $fieldsFix
+    );
     CRM_Price_BAO_PriceSet::copyPriceSet('civicrm_event', $id, $copyEvent->id);
-    $copyUF = &CRM_Core_DAO::copyGeneric('CRM_Core_DAO_UFJoin',
+    CRM_Core_DAO::copyGeneric('CRM_Core_DAO_UFJoin',
       array(
         'entity_id' => $id,
         'entity_table' => 'civicrm_event',
@@ -972,7 +959,7 @@ WHERE civicrm_event.is_active = 1
       array('entity_id' => $copyEvent->id)
     );
 
-    $copyTellFriend = &CRM_Core_DAO::copyGeneric('CRM_Friend_DAO_Friend',
+    CRM_Core_DAO::copyGeneric('CRM_Friend_DAO_Friend',
       array(
         'entity_id' => $id,
         'entity_table' => 'civicrm_event',
@@ -980,7 +967,7 @@ WHERE civicrm_event.is_active = 1
       array('entity_id' => $copyEvent->id)
     );
 
-    $copyPCP = &CRM_Core_DAO::copyGeneric('CRM_PCP_DAO_PCPBlock',
+    CRM_Core_DAO::copyGeneric('CRM_PCP_DAO_PCPBlock',
       array(
         'entity_id' => $id,
         'entity_table' => 'civicrm_event',
@@ -995,22 +982,17 @@ WHERE civicrm_event.is_active = 1
     $copyMapping = CRM_Utils_Array::first(CRM_Core_BAO_ActionSchedule::getMappings(array(
       'id' => ($copyEvent->is_template == 1 ? CRM_Event_ActionMapping::EVENT_TPL_MAPPING_ID : CRM_Event_ActionMapping::EVENT_NAME_MAPPING_ID),
     )));
-    $copyReminder = &CRM_Core_DAO::copyGeneric('CRM_Core_DAO_ActionSchedule',
+    CRM_Core_DAO::copyGeneric('CRM_Core_DAO_ActionSchedule',
       array('entity_value' => $id, 'mapping_id' => $oldMapping->getId()),
       array('entity_value' => $copyEvent->id, 'mapping_id' => $copyMapping->getId())
     );
-
-    if (!$afterCreate) {
-      // CRM-19302
-      self::copyCustomFields($id, $copyEvent->id);
-    }
+    self::copyCustomFields($id, $copyEvent->id);
 
     $copyEvent->save();
 
     CRM_Utils_System::flushCache();
-    if (!$afterCreate) {
-      CRM_Utils_Hook::copy('Event', $copyEvent);
-    }
+    CRM_Utils_Hook::copy('Event', $copyEvent);
+
     return $copyEvent;
   }
 
@@ -1826,7 +1808,10 @@ WHERE  id = $cfID
         $title = $groupTitles = array();
         foreach ($additionalIDs as $pId => $cId) {
           //get the params submitted by participant.
-          $participantParams = CRM_Utils_Array::value($pId, $values['params'], array());
+          $participantParams = NULL;
+          if (isset($values['params'])) {
+            $participantParams = CRM_Utils_Array::value($pId, $values['params'], array());
+          }
 
           list($profilePre, $groupTitles) = self::buildCustomDisplay($preProfileID,
             'additionalCustomPre',
@@ -2056,48 +2041,139 @@ WHERE  ce.loc_block_id = $locBlockId";
 
   /**
    * Make sure that the user has permission to access this event.
+   * FIXME: We have separate caches for checkPermission('permission') and getAllPermissions['permissions'] so they don't interfere.
+   *    But it would be nice to clean this up some more.
    *
    * @param int $eventId
-   * @param int $type
+   * @param int $permissionType
    *
-   * @return string
-   *   the permission that the user has (or null)
+   * @return bool|array
+   *   Whether the user has permission for this event (or if eventId=NULL an array of permissions)
+   * @throws \CiviCRM_API3_Exception
    */
-  public static function checkPermission($eventId = NULL, $type = CRM_Core_Permission::VIEW) {
-    static $permissions = NULL;
+  public static function checkPermission($eventId = NULL, $permissionType = CRM_Core_Permission::VIEW) {
+    if (empty($eventId)) {
+      CRM_Core_Error::deprecatedFunctionWarning('CRM_Event_BAO_Event::getAllPermissions');
+      return self::getAllPermissions();
+    }
 
-    if (empty($permissions)) {
-      $params = array(
-        'check_permissions' => 1,
-        'return' => 'title',
-        'options' => array(
-          'limit' => 0,
-        ),
-      );
+    switch ($permissionType) {
+      case CRM_Core_Permission::EDIT:
+        // We also set the cached "view" permission to TRUE if "edit" is TRUE
+        if (isset(Civi::$statics[__CLASS__]['permission']['edit'][$eventId])) {
+          return Civi::$statics[__CLASS__]['permission']['edit'][$eventId];
+        }
+        Civi::$statics[__CLASS__]['permission']['edit'][$eventId] = FALSE;
 
-      if ($eventId) {
-        $params['id'] = $eventId;
+        list($allEvents, $createdEvents) = self::checkPermissionGetInfo($eventId);
+        // Note: for a multisite setup, a user with edit all events, can edit all events
+        // including those from other sites
+        if (($permissionType == CRM_Core_Permission::EDIT) && CRM_Core_Permission::check('edit all events')) {
+          Civi::$statics[__CLASS__]['permission']['edit'][$eventId] = TRUE;
+          Civi::$statics[__CLASS__]['permission']['view'][$eventId] = TRUE;
+        }
+        elseif (in_array($eventId, CRM_ACL_API::group(CRM_Core_Permission::EDIT, NULL, 'civicrm_event', $allEvents, $createdEvents))) {
+          Civi::$statics[__CLASS__]['permission']['edit'][$eventId] = TRUE;
+          Civi::$statics[__CLASS__]['permission']['view'][$eventId] = TRUE;
+        }
+        return Civi::$statics[__CLASS__]['permission']['edit'][$eventId];
+
+      case CRM_Core_Permission::VIEW:
+        if (isset(Civi::$statics[__CLASS__]['permission']['view'][$eventId])) {
+          return Civi::$statics[__CLASS__]['permission']['view'][$eventId];
+        }
+        Civi::$statics[__CLASS__]['permission']['view'][$eventId] = FALSE;
+
+        list($allEvents, $createdEvents) = self::checkPermissionGetInfo($eventId);
+        if (CRM_Core_Permission::check('access CiviEvent')) {
+          if (in_array($eventId, CRM_ACL_API::group(CRM_Core_Permission::VIEW, NULL, 'civicrm_event', $allEvents, array_keys($createdEvents)))) {
+            // User created this event so has permission to view it
+            return Civi::$statics[__CLASS__]['permission']['view'][$eventId] = TRUE;
+          }
+          if (CRM_Core_Permission::check('view event participants')) {
+            // User has permission to view all events
+            // use case: allow "view all events" but NOT "edit all events"
+            // so for a normal site allow users with these two permissions to view all events AND
+            // at the same time also allow any hook to override if needed.
+            if (in_array($eventId, CRM_ACL_API::group(CRM_Core_Permission::VIEW, NULL, 'civicrm_event', $allEvents, array_keys($allEvents)))) {
+              Civi::$statics[__CLASS__]['permission']['view'][$eventId] = TRUE;
+            }
+          }
+        }
+        return Civi::$statics[__CLASS__]['permission']['view'][$eventId];
+
+      case CRM_Core_Permission::DELETE:
+        if (isset(Civi::$statics[__CLASS__]['permission']['delete'][$eventId])) {
+          return Civi::$statics[__CLASS__]['permission']['delete'][$eventId];
+        }
+        Civi::$statics[__CLASS__]['permission']['delete'][$eventId] = FALSE;
+        if (CRM_Core_Permission::check('delete in CiviEvent')) {
+          Civi::$statics[__CLASS__]['permission']['delete'][$eventId] = TRUE;
+        }
+        return Civi::$statics[__CLASS__]['permission']['delete'][$eventId];
+
+      default:
+        return FALSE;
+    }
+  }
+
+  /**
+   * This is a helper for refactoring checkPermission
+   * FIXME: We should be able to get rid of these arrays, but that would require understanding how CRM_ACL_API::group actually works!
+   *
+   * @param int $eventId
+   *
+   * @return array $allEvents, $createdEvents
+   * @throws \CiviCRM_API3_Exception
+   */
+  private static function checkPermissionGetInfo($eventId = NULL) {
+    $params = [
+      'check_permissions' => 1,
+      'return' => 'id, created_id',
+      'options' => ['limit' => 0],
+    ];
+    if ($eventId) {
+      $params['id'] = $eventId;
+    }
+
+    $allEvents = [];
+    $createdEvents = [];
+    $eventResult = civicrm_api3('Event', 'get', $params);
+    if ($eventResult['count'] > 0) {
+      $contactId = CRM_Core_Session::getLoggedInContactID();
+      foreach ($eventResult['values'] as $eventId => $eventDetail) {
+        $allEvents[$eventId] = $eventId;
+        if (isset($eventDetail['created_id']) && $contactId == $eventDetail['created_id']) {
+          $createdEvents[$eventId] = $eventId;
+        }
       }
+    }
+    return [$allEvents, $createdEvents];
+  }
 
-      $result = civicrm_api3('Event', 'get', $params);
-      $allEvents = CRM_Utils_Array::collect('title', $result['values']);
-
-      // Search again, but only events created by the user.
-      $params['created_id'] = 'user_contact_id';
-      $result = civicrm_api3('Event', 'get', $params);
-      $createdEvents = CRM_Utils_Array::collect('title', $result['values']);
+  /**
+   * Make sure that the user has permission to access this event.
+   * TODO: This function needs refactoring / cleaning up after being split from checkPermissions()
+   *
+   * @return array
+   *   Array of events with permissions (array_keys=permissions)
+   * @throws \CiviCRM_API3_Exception
+   */
+  public static function getAllPermissions() {
+    if (!isset(Civi::$statics[__CLASS__]['permissions'])) {
+      list($allEvents, $createdEvents) = self::checkPermissionGetInfo();
 
       // Note: for a multisite setup, a user with edit all events, can edit all events
       // including those from other sites
       if (CRM_Core_Permission::check('edit all events')) {
-        $permissions[CRM_Core_Permission::EDIT] = array_keys($allEvents);
+        Civi::$statics[__CLASS__]['permissions'][CRM_Core_Permission::EDIT] = array_keys($allEvents);
       }
       else {
-        $permissions[CRM_Core_Permission::EDIT] = CRM_ACL_API::group(CRM_Core_Permission::EDIT, NULL, 'civicrm_event', $allEvents, $createdEvents);
+        Civi::$statics[__CLASS__]['permissions'][CRM_Core_Permission::EDIT] = CRM_ACL_API::group(CRM_Core_Permission::EDIT, NULL, 'civicrm_event', $allEvents, $createdEvents);
       }
 
       if (CRM_Core_Permission::check('edit all events')) {
-        $permissions[CRM_Core_Permission::VIEW] = array_keys($allEvents);
+        Civi::$statics[__CLASS__]['permissions'][CRM_Core_Permission::VIEW] = array_keys($allEvents);
       }
       else {
         if (CRM_Core_Permission::check('access CiviEvent') &&
@@ -2108,25 +2184,21 @@ WHERE  ce.loc_block_id = $locBlockId";
           // at the same time also allow any hook to override if needed.
           $createdEvents = array_keys($allEvents);
         }
-        $permissions[CRM_Core_Permission::VIEW] = CRM_ACL_API::group(CRM_Core_Permission::VIEW, NULL, 'civicrm_event', $allEvents, $createdEvents);
+        Civi::$statics[__CLASS__]['permissions'][CRM_Core_Permission::VIEW] = CRM_ACL_API::group(CRM_Core_Permission::VIEW, NULL, 'civicrm_event', $allEvents, $createdEvents);
       }
 
-      $permissions[CRM_Core_Permission::DELETE] = array();
+      Civi::$statics[__CLASS__]['permissions'][CRM_Core_Permission::DELETE] = array();
       if (CRM_Core_Permission::check('delete in CiviEvent')) {
         // Note: we want to restrict the scope of delete permission to
         // events that are editable/viewable (usecase multisite).
         // We can remove array_intersect once we have ACL support for delete functionality.
-        $permissions[CRM_Core_Permission::DELETE] = array_intersect($permissions[CRM_Core_Permission::EDIT],
-          $permissions[CRM_Core_Permission::VIEW]
+        Civi::$statics[__CLASS__]['permissions'][CRM_Core_Permission::DELETE] = array_intersect(Civi::$statics[__CLASS__]['permissions'][CRM_Core_Permission::EDIT],
+          Civi::$statics[__CLASS__]['permissions'][CRM_Core_Permission::VIEW]
         );
       }
     }
 
-    if ($eventId) {
-      return in_array($eventId, $permissions[$type]) ? TRUE : FALSE;
-    }
-
-    return $permissions;
+    return Civi::$statics[__CLASS__]['permissions'];
   }
 
   /**

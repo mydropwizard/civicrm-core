@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CiviCRM_Hook
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 abstract class CRM_Utils_Hook {
 
@@ -1263,12 +1263,17 @@ abstract class CRM_Utils_Hook {
    *   SQL columns.
    * @param int $exportMode
    *   Export mode ( contact, contribution, etc...).
+   * @param string $componentTable
+   *   Name of temporary table
+   * @param array $ids
+   *   Array of object's ids
    *
    * @return mixed
    */
-  public static function export(&$exportTempTable, &$headerRows, &$sqlColumns, &$exportMode) {
-    return self::singleton()->invoke(array('exportTempTable', 'headerRows', 'sqlColumns', 'exportMode'), $exportTempTable, $headerRows, $sqlColumns, $exportMode,
-      self::$_nullObject, self::$_nullObject,
+  public static function export(&$exportTempTable, &$headerRows, &$sqlColumns, &$exportMode, &$componentTable, &$ids) {
+    return self::singleton()->invoke(array('exportTempTable', 'headerRows', 'sqlColumns', 'exportMode', 'componentTable', 'ids'),
+      $exportTempTable, $headerRows, $sqlColumns,
+      $exportMode, $componentTable, $ids,
       'civicrm_export'
     );
   }
@@ -1820,13 +1825,15 @@ abstract class CRM_Utils_Hook {
    *   The name of an atomic permission, ie. 'access deleted contacts'
    * @param bool $granted
    *   Whether this permission is currently granted. The hook can change this value.
+   * @param int $contactId
+   *   Contact whose permissions we are checking (if null, assume current user).
    *
    * @return null
    *   The return value is ignored
    */
-  public static function permission_check($permission, &$granted) {
-    return self::singleton()->invoke(array('permission', 'granted'), $permission, $granted,
-      self::$_nullObject, self::$_nullObject, self::$_nullObject, self::$_nullObject,
+  public static function permission_check($permission, &$granted, $contactId) {
+    return self::singleton()->invoke(array('permission', 'granted', 'contactId'), $permission, $granted, $contactId,
+      self::$_nullObject, self::$_nullObject, self::$_nullObject,
       'civicrm_permission_check'
     );
   }
@@ -2009,7 +2016,7 @@ abstract class CRM_Utils_Hook {
     // are expected to be called externally.
     // It's really really unlikely anyone uses this - but let's add deprecations for a couple
     // of releases first.
-    Civi::log()->warning('Deprecated function CRM_Utils_Hook::alterMail, use CRM_Utils_Hook::alterMailer', array('civi.tag' => 'deprecated'));
+    CRM_Core_Error::deprecatedFunctionWarning('CRM_Utils_Hook::alterMailer');
     return CRM_Utils_Hook::alterMailer($mailer, $driver, $params);
   }
 
@@ -2415,6 +2422,72 @@ abstract class CRM_Utils_Hook {
     return self::singleton()->invoke(array('params', 'formName'), $params, $formName,
       self::$_nullObject, self::$_nullObject, self::$_nullObject, self::$_nullObject,
       'civicrm_alterEntityRefParams'
+    );
+  }
+
+  /**
+   * This hook is called before a scheduled job is executed
+   *
+   * @param CRM_Core_DAO_Job $job
+   *   The job to be executed
+   * @param array $params
+   *   The arguments to be given to the job
+   */
+  public static function preJob($job, $params) {
+    return self::singleton()->invoke(array('job', 'params'), $job, $params,
+      self::$_nullObject, self::$_nullObject, self::$_nullObject, self::$_nullObject,
+      'civicrm_preJob'
+    );
+  }
+
+  /**
+   * This hook is called after a scheduled job is executed
+   *
+   * @param CRM_Core_DAO_Job $job
+   *   The job that was executed
+   * @param array $params
+   *   The arguments given to the job
+   * @param array $result
+   *   The result of the API call, or the thrown exception if any
+   */
+  public static function postJob($job, $params, $result) {
+    return self::singleton()->invoke(array('job', 'params', 'result'), $job, $params, $result,
+      self::$_nullObject, self::$_nullObject, self::$_nullObject,
+      'civicrm_postJob'
+    );
+  }
+
+  /**
+   * This hook is called before and after constructing mail recipients.
+   *  Allows user to alter filter and/or search query to fetch mail recipients
+   *
+   * @param CRM_Mailing_DAO_Mailing $mailingObject
+   * @param array $criteria
+   *   A list of SQL criteria; you can add/remove/replace/modify criteria.
+   *   Array(string $name => CRM_Utils_SQL_Select $criterion).
+   *   Ex: array('do_not_email' => CRM_Utils_SQL_Select::fragment()->where("$contact.do_not_email = 0")).
+   * @param string $context
+   *   Ex: 'pre', 'post'
+   * @return mixed
+   */
+  public static function alterMailingRecipients(&$mailingObject, &$criteria, $context) {
+    return self::singleton()->invoke(array('mailingObject', 'params', 'context'),
+      $mailingObject, $criteria, $context,
+      self::$_nullObject, self::$_nullObject, self::$_nullObject,
+      'civicrm_alterMailingRecipients'
+    );
+  }
+
+  /**
+   * ALlow Extensions to custom process IPN hook data such as sending Google Analyitcs information based on the IPN
+   * @param array $IPNData - Array of IPN Data
+   * @return mixed
+   */
+  public static function postIPNProcess(&$IPNData) {
+    return self::singleton()->invoke(array('IPNData'),
+      $IPNData, self::$_nullObject, self::$_nullObject,
+      self::$_nullObject, self::$_nullObject, self::$_nullObject,
+      'civicrm_postIPNProcess'
     );
   }
 

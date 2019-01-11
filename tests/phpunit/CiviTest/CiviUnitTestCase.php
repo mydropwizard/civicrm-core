@@ -114,9 +114,13 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
   private $tx = NULL;
 
   /**
-   * @var CRM_Utils_Hook_UnitTests hookClass
-   * example of setting a method for a hook
+   * Class used for hooks during tests.
+   *
+   * This can be used to test hooks within tests. For example in the ACL_PermissionTrait:
+   *
    * $this->hookClass->setHook('civicrm_aclWhereClause', array($this, 'aclWhereHookAllResults'));
+   *
+   * @var CRM_Utils_Hook_UnitTests hookClass
    */
   public $hookClass = NULL;
 
@@ -140,7 +144,7 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
   public $setupIDs = array();
 
   /**
-   * PHPUnit Mock Mecthod to use.
+   * PHPUnit Mock Method to use.
    *
    * @var string
    */
@@ -405,7 +409,9 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
   protected function tearDown() {
     error_reporting(E_ALL & ~E_NOTICE);
     CRM_Utils_Hook::singleton()->reset();
-    $this->hookClass->reset();
+    if ($this->hookClass) {
+      $this->hookClass->reset();
+    }
     $session = CRM_Core_Session::singleton();
     $session->set('userID', NULL);
 
@@ -680,6 +686,20 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
         array(1 => $key)
       )
     );
+  }
+
+  /**
+   * Assert the 2 arrays have the same values.
+   *
+   * @param array $array1
+   * @param array $array2
+   */
+  public function assertArrayValuesEqual($array1, $array2) {
+    $array1 = array_values($array1);
+    $array2 = array_values($array2);
+    sort($array1);
+    sort($array2);
+    $this->assertEquals($array1, $array2);
   }
 
   /**
@@ -1300,8 +1320,6 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
       'financial_type_id' => 1,
       'payment_instrument_id' => 1,
       'non_deductible_amount' => 10.00,
-      'trxn_id' => 12345,
-      'invoice_id' => 67890,
       'source' => 'SSF',
       'contribution_status_id' => 1,
     ), $params);
@@ -1713,27 +1731,6 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
   }
 
   /**
-   * Delete a UF Join Entry.
-   *
-   * @param array $params
-   *   with missing uf_group_id
-   */
-  public function ufjoinDelete($params = NULL) {
-    if ($params === NULL) {
-      $params = array(
-        'is_active' => 1,
-        'module' => 'CiviEvent',
-        'entity_table' => 'civicrm_event',
-        'entity_id' => 3,
-        'weight' => 1,
-        'uf_group_id' => '',
-      );
-    }
-
-    crm_add_uf_join($params);
-  }
-
-  /**
    * @param array $params
    *   Optional parameters.
    * @param bool $reloadConfig
@@ -1794,7 +1791,7 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
       'location' => 'Baker Street',
       'details' => 'Lets schedule a meeting',
       'status_id' => 1,
-      'activity_name' => 'Meeting',
+      'activity_type_id' => 'Meeting',
     ), $params);
     if (!isset($params['source_contact_id'])) {
       $params['source_contact_id'] = $this->individualCreate();
@@ -1960,6 +1957,45 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
 
     return array('custom_group_id' => $customGroup['id'], 'custom_field_id' => $customField['id']);
   }
+
+  /**
+   * Create a custom group with a single text custom field, multi-select widget, with a variety of option values including upper and lower case.
+   * See api_v3_SyntaxConformanceTest:testCustomDataGet for how to use this
+   *
+   * @param string $function
+   *   __FUNCTION__.
+   * @param string $filename
+   *   $file __FILE__.
+   *
+   * @return array
+   *   ids of created objects
+   */
+  public function entityCustomGroupWithSingleStringMultiSelectFieldCreate($function, $filename) {
+    $params = array('title' => $function);
+    $entity = substr(basename($filename), 0, strlen(basename($filename)) - 8);
+    $params['extends'] = $entity ? $entity : 'Contact';
+    $customGroup = $this->CustomGroupCreate($params);
+    $customField = $this->customFieldCreate(array('custom_group_id' => $customGroup['id'], 'label' => $function, 'html_type' => 'Multi-Select', 'default_value' => 1));
+    CRM_Core_PseudoConstant::flush();
+    $options = [
+      'defaultValue' => 'Default Value',
+      'lowercasevalue' => 'Lowercase Value',
+      1 => 'Integer Value',
+    ];
+    $custom_field_params = ['sequential' => 1, 'id' => $customField['id']];
+    $custom_field_api_result = $this->callAPISuccess('custom_field', 'get', $custom_field_params);
+    $this->assertNotEmpty($custom_field_api_result['values'][0]['option_group_id']);
+    $option_group_params = ['sequential' => 1, 'id' => $custom_field_api_result['values'][0]['option_group_id']];
+    $option_group_result = $this->callAPISuccess('OptionGroup', 'get', $option_group_params);
+    $this->assertNotEmpty($option_group_result['values'][0]['name']);
+    foreach ($options as $option_value => $option_label) {
+      $option_group_params = ['option_group_id' => $option_group_result['values'][0]['name'], 'value' => $option_value, 'label' => $option_label];
+      $option_value_result = $this->callAPISuccess('OptionValue', 'create', $option_group_params);
+    }
+
+    return array('custom_group_id' => $customGroup['id'], 'custom_field_id' => $customField['id'], 'custom_field_option_group_id' => $custom_field_api_result['values'][0]['option_group_id'], 'custom_field_group_options' => $options);
+  }
+
 
   /**
    * Delete custom group.
@@ -2773,8 +2809,24 @@ AND    ( TABLE_NAME LIKE 'civicrm_value_%' )
 
   /**
    * Set up initial recurring payment allowing subsequent IPN payments.
+   *
+   * @param array $recurParams (Optional)
+   * @param array $contributionParams (Optional)
    */
-  public function setupRecurringPaymentProcessorTransaction($params = array()) {
+  public function setupRecurringPaymentProcessorTransaction($recurParams = [], $contributionParams = []) {
+    $contributionParams = array_merge([
+        'total_amount' => '200',
+        'invoice_id' => $this->_invoiceID,
+        'financial_type_id' => 'Donation',
+        'contribution_status_id' => 'Pending',
+        'contact_id' => $this->_contactID,
+        'contribution_page_id' => $this->_contributionPageID,
+        'payment_processor_id' => $this->_paymentProcessorID,
+        'is_test' => 0,
+        'skipCleanMoney' => TRUE,
+      ],
+      $contributionParams
+    );
     $contributionRecur = $this->callAPISuccess('contribution_recur', 'create', array_merge(array(
       'contact_id' => $this->_contactID,
       'amount' => 1000,
@@ -2787,18 +2839,8 @@ AND    ( TABLE_NAME LIKE 'civicrm_value_%' )
       'payment_processor_id' => $this->_paymentProcessorID,
       // processor provided ID - use contact ID as proxy.
       'processor_id' => $this->_contactID,
-      'api.contribution.create' => array(
-        'total_amount' => '200',
-        'invoice_id' => $this->_invoiceID,
-        'financial_type_id' => 1,
-        'contribution_status_id' => 'Pending',
-        'contact_id' => $this->_contactID,
-        'contribution_page_id' => $this->_contributionPageID,
-        'payment_processor_id' => $this->_paymentProcessorID,
-        'is_test' => 0,
-        'skipCleanMoney' => TRUE,
-      ),
-    ), $params));
+      'api.contribution.create' => $contributionParams,
+    ), $recurParams));
     $this->_contributionRecurID = $contributionRecur['id'];
     $this->_contributionID = $contributionRecur['values']['0']['api.contribution.create']['id'];
   }
@@ -3338,6 +3380,37 @@ AND    ( TABLE_NAME LIKE 'civicrm_value_%' )
   }
 
   /**
+   * Create Payment Instrument.
+   *
+   * @param array $params
+   * @param string $financialAccountName
+   *
+   * @return int
+   */
+  protected function createPaymentInstrument($params = array(), $financialAccountName = 'Donation') {
+    $params = array_merge(array(
+      'label' => 'Payment Instrument -' . substr(sha1(rand()), 0, 7),
+      'option_group_id' => 'payment_instrument',
+      'is_active' => 1,
+      ),
+      $params
+    );
+    $newPaymentInstrument = $this->callAPISuccess('OptionValue', 'create', $params);
+
+    $relationTypeID = key(CRM_Core_PseudoConstant::accountOptionValues('account_relationship', NULL, " AND v.name LIKE 'Asset Account is' "));
+
+    $financialAccountParams = [
+      'entity_table' => 'civicrm_option_value',
+      'entity_id' => key($newPaymentInstrument),
+      'account_relationship' => $relationTypeID,
+      'financial_account_id' => $this->callAPISuccess('FinancialAccount', 'getValue', ['name' => $financialAccountName, 'return' => 'id']),
+    ];
+    CRM_Financial_BAO_FinancialTypeAccount::add($financialAccountParams);
+
+    return CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'payment_instrument_id', $params['label']);
+  }
+
+  /**
    * Enable Tax and Invoicing
    */
   protected function enableTaxAndInvoicing($params = array()) {
@@ -3485,20 +3558,6 @@ AND    ( TABLE_NAME LIKE 'civicrm_value_%' )
     $this->_ids['price_field'] = array($priceField['id']);
 
     $this->_ids['membership_type'] = $membershipTypeID;
-  }
-
-  /**
-   * No results returned.
-   *
-   * @implements CRM_Utils_Hook::aclWhereClause
-   *
-   * @param string $type
-   * @param array $tables
-   * @param array $whereTables
-   * @param int $contactID
-   * @param string $where
-   */
-  public function aclWhereHookNoResults($type, &$tables, &$whereTables, &$contactID, &$where) {
   }
 
   /**

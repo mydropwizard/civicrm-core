@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 require_once 'HTML/QuickForm/Rule/Email.php';
@@ -108,7 +108,7 @@ class CRM_Utils_Rule {
     //   * Composed of alphanumeric chars, underscore and hyphens.
     //   * Maximum length of 64 chars.
     //   * Optionally surrounded by backticks, in which case spaces also OK.
-    if (!preg_match('/^((`[\w- ]{1,64}`|[\w-]{1,64})\.)?(`[\w- ]{1,64}`|[\w-]{1,64})$/i', $str)) {
+    if (!preg_match('/^((`[-\w ]{1,64}`|[-\w]{1,64})\.)?(`[-\w ]{1,64}`|[-\w]{1,64})$/i', $str)) {
       return FALSE;
     }
 
@@ -157,7 +157,7 @@ class CRM_Utils_Rule {
     // at all, so we split and loop over.
     $parts = explode(',', $str);
     foreach ($parts as $part) {
-      if (!preg_match('/^((`[\w-]{1,64}`|[\w-]{1,64})\.)?(`[\w-]{1,64}`|[\w-]{1,64})( (asc|desc))?$/i', trim($part))) {
+      if (!preg_match('/^((`[\w-]{1,64}`|[\w-]{1,64})\.)*(`[\w-]{1,64}`|[\w-]{1,64})( (asc|desc))?$/i', trim($part))) {
         return FALSE;
       }
     }
@@ -229,6 +229,10 @@ class CRM_Utils_Rule {
    * @return bool
    */
   public static function url($url) {
+    if (!$url) {
+      // If this is required then that should be checked elsewhere - here we are not assuming it is required.
+      return TRUE;
+    }
     if (preg_match('/^\//', $url)) {
       // allow relative URL's (CRM-15598)
       $url = 'http://' . $_SERVER['HTTP_HOST'] . $url;
@@ -503,6 +507,27 @@ class CRM_Utils_Rule {
     }
 
     return preg_match('/(^-?\d\d*\.\d*$)|(^-?\d\d*$)|(^-?\.\d\d*$)/', $value) ? TRUE : FALSE;
+  }
+
+  /**
+   * Test whether $value is alphanumeric.
+   *
+   * Underscores and dashes are also allowed!
+   *
+   * This is the type of string you could expect to see in URL parameters
+   * like `?mode=live` vs `?mode=test`. This function exists so that we can be
+   * strict about what we accept for such values, thus mitigating against
+   * potential security issues.
+   *
+   * @see \CRM_Utils_RuleTest::alphanumericData
+   *   for examples of vales that give TRUE/FALSE here
+   *
+   * @param $value
+   *
+   * @return bool
+   */
+  public static function alphanumeric($value) {
+    return preg_match('/^[a-zA-Z0-9_-]*$/', $value) ? TRUE : FALSE;
   }
 
   /**

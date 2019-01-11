@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 class CRM_Campaign_BAO_Petition extends CRM_Campaign_BAO_Survey {
   /**
@@ -586,7 +586,7 @@ AND         tag_id = ( SELECT id FROM civicrm_tag WHERE name = %2 )";
 
     $toName = CRM_Contact_BAO_Contact::displayName($params['contactId']);
 
-    $replyTo = "do-not-reply@$emailDomain";
+    $replyTo = CRM_Core_BAO_Domain::getNoReplyEmailAddress();
 
     // set additional general message template params (custom tokens to use in email msg templates)
     // tokens then available in msg template as {$petition.title}, etc

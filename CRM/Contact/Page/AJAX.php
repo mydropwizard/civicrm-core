@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  *
  */
 
@@ -61,7 +61,7 @@ class CRM_Contact_Page_AJAX {
     $cf = array();
     CRM_Core_DAO::commonRetrieve('CRM_Core_DAO_CustomField', $params, $cf, $returnProperties);
     if (!$cf['id'] || !$cf['is_active'] || $cf['data_type'] != 'ContactReference') {
-      CRM_Utils_System::civiExit('error');
+      CRM_Utils_System::civiExit(1);
     }
 
     if (!empty($cf['filter'])) {
@@ -70,7 +70,7 @@ class CRM_Contact_Page_AJAX {
 
       $action = CRM_Utils_Array::value('action', $filterParams);
       if (!empty($action) && !in_array($action, array('get', 'lookup'))) {
-        CRM_Utils_System::civiExit('error');
+        CRM_Utils_System::civiExit(1);
       }
 
       if (!empty($filterParams['group'])) {
@@ -136,7 +136,7 @@ class CRM_Contact_Page_AJAX {
     $contact = civicrm_api('Contact', 'Get', $params);
 
     if (!empty($contact['is_error'])) {
-      CRM_Utils_System::civiExit('error');
+      CRM_Utils_System::civiExit(1);
     }
 
     $contactList = array();
@@ -247,13 +247,22 @@ class CRM_Contact_Page_AJAX {
     // Loop through multiple case clients
     foreach ($clientList as $i => $sourceContactID) {
       try {
-        $result = civicrm_api3('relationship', 'create', array(
+        $params = [
           'case_id' => $caseID,
           'relationship_type_id' => $relTypeId,
           "contact_id_$a" => $relContactID,
           "contact_id_$b" => $sourceContactID,
+          'sequential' => TRUE,
+        ];
+        // first check if there is any existing relationship present with same parameters.
+        // If yes then update the relationship by setting active and start date to current time
+        $relationship = civicrm_api3('Relationship', 'get', $params)['values'];
+        $params = array_merge(CRM_Utils_Array::value(0, $relationship, $params), [
           'start_date' => 'now',
-        ));
+          'is_active' => TRUE,
+          'end_date' => '',
+        ]);
+        $result = civicrm_api3('relationship', 'create', $params);
       }
       catch (CiviCRM_API3_Exception $e) {
         $ret['is_error'] = 1;
@@ -415,7 +424,7 @@ LIMIT {$offset}, {$rowCount}
           // send query to hook to be modified if needed
           CRM_Utils_Hook::contactListQuery($query,
             $name,
-            CRM_Utils_Request::retrieve('context', 'String'),
+            CRM_Utils_Request::retrieve('context', 'Alphanumeric'),
             CRM_Utils_Request::retrieve('cid', 'Positive')
           );
 
@@ -440,7 +449,7 @@ LIMIT {$offset}, {$rowCount}
           // send query to hook to be modified if needed
           CRM_Utils_Hook::contactListQuery($query,
             $name,
-            CRM_Utils_Request::retrieve('context', 'String'),
+            CRM_Utils_Request::retrieve('context', 'Alphanumeric'),
             CRM_Utils_Request::retrieve('cid', 'Positive')
           );
 
@@ -463,34 +472,28 @@ LIMIT {$offset}, {$rowCount}
   public static function getContactPhone() {
 
     $queryString = NULL;
+    $sqlParmas = [];
     //check for mobile type
     $phoneTypes = CRM_Core_OptionGroup::values('phone_type', TRUE, FALSE, FALSE, NULL, 'name');
     $mobileType = CRM_Utils_Array::value('Mobile', $phoneTypes);
 
-    $name = CRM_Utils_Array::value('name', $_GET);
+    $name = CRM_Utils_Request::retrieveValue('name', 'String', NULL, FALSE, 'GET');
     if ($name) {
-      $name = CRM_Utils_Type::escape($name, 'String');
-      $queryString = " ( cc.sort_name LIKE '%$name%' OR cp.phone LIKE '%$name%' ) ";
+      $key = (int) count(array_keys($sqlParmas)) + 1;
+      $queryString = " ( cc.sort_name LIKE %{$key} OR cp.phone LIKE %{$key} ) ";
+      $sqlParams[$key] = ['%' . $name . '%', 'String'];
     }
     else {
-      $cid = CRM_Utils_Array::value('cid', $_GET);
+      $cid = CRM_Utils_Request::retrieveValue('cid', 'CommaSeparatedIntegers', NULL, FALSE, 'GET');
       if ($cid) {
-        //check cid for integer
-        $contIDS = explode(',', $cid);
-        foreach ($contIDS as $contID) {
-          CRM_Utils_Type::escape($contID, 'Integer');
-        }
         $queryString = " cc.id IN ( $cid )";
       }
     }
 
     if ($queryString) {
       $result = array();
-      $offset = CRM_Utils_Array::value('offset', $_GET, 0);
-      $rowCount = CRM_Utils_Array::value('rowcount', $_GET, 20);
-
-      $offset = CRM_Utils_Type::escape($offset, 'Int');
-      $rowCount = CRM_Utils_Type::escape($rowCount, 'Int');
+      $offset = (int) CRM_Utils_Request::retrieveValue('offset', 'Integer', 0, FALSE, 'GET');
+      $rowCount = (int) CRM_Utils_Request::retrieveValue('rowcount', 'Integer', 20, FALSE, 'GET');
 
       // add acl clause here
       list($aclFrom, $aclWhere) = CRM_Contact_BAO_Contact_Permission::cacheClause('cc');
@@ -510,11 +513,11 @@ LIMIT {$offset}, {$rowCount}
       // send query to hook to be modified if needed
       CRM_Utils_Hook::contactListQuery($query,
         $name,
-        CRM_Utils_Request::retrieve('context', 'String'),
+        CRM_Utils_Request::retrieve('context', 'Alphanumeric'),
         CRM_Utils_Request::retrieve('cid', 'Positive')
       );
 
-      $dao = CRM_Core_DAO::executeQuery($query);
+      $dao = CRM_Core_DAO::executeQuery($query, $sqlParams);
 
       while ($dao->fetch()) {
         $result[] = array(
@@ -651,7 +654,7 @@ LIMIT {$offset}, {$rowCount}
     $rgid = CRM_Utils_Request::retrieve('rgid', 'Positive');
     $null = NULL;
     $criteria = CRM_Utils_Request::retrieve('criteria', 'Json', $null, FALSE, '{}');
-    $selected    = isset($_REQUEST['selected']) ? CRM_Utils_Type::escape($_REQUEST['selected'], 'Integer') : 0;
+    $selected = CRM_Utils_Request::retrieveValue('selected', 'Boolean');
     if ($rowCount < 0) {
       $rowCount = 0;
     }
@@ -966,19 +969,19 @@ LIMIT {$offset}, {$rowCount}
           $elements[$key] = self::_convertToId($element);
         }
         CRM_Utils_Type::escapeAll($elements, 'Integer');
-        CRM_Core_BAO_PrevNextCache::markSelection($cacheKey, $actionToPerform, $elements);
+        Civi::service('prevnext')->markSelection($cacheKey, $actionToPerform, $elements);
       }
       else {
-        CRM_Core_BAO_PrevNextCache::markSelection($cacheKey, $actionToPerform);
+        Civi::service('prevnext')->markSelection($cacheKey, $actionToPerform);
       }
     }
     elseif ($variableType == 'single') {
       $cId = self::_convertToId($name);
       CRM_Utils_Type::escape($cId, 'Integer');
       $action = ($state == 'checked') ? 'select' : 'unselect';
-      CRM_Core_BAO_PrevNextCache::markSelection($cacheKey, $action, $cId);
+      Civi::service('prevnext')->markSelection($cacheKey, $action, $cId);
     }
-    $contactIds = CRM_Core_BAO_PrevNextCache::getSelection($cacheKey);
+    $contactIds = Civi::service('prevnext')->getSelection($cacheKey);
     $countSelectionCids = count($contactIds[$cacheKey]);
 
     $arrRet = array('getCount' => $countSelectionCids);
@@ -1017,13 +1020,9 @@ LIMIT {$offset}, {$rowCount}
    * Mark dupe pairs as selected from un-selected state or vice-versa, in dupe cache table.
    */
   public static function toggleDedupeSelect() {
-    $rgid = CRM_Utils_Type::escape($_REQUEST['rgid'], 'Integer');
-    $gid  = CRM_Utils_Type::escape($_REQUEST['gid'], 'Integer');
     $pnid = $_REQUEST['pnid'];
     $isSelected = CRM_Utils_Type::escape($_REQUEST['is_selected'], 'Boolean');
-    $criteria = CRM_Utils_Request::retrieve('criteria', 'Json', $null, FALSE, '{}');
-
-    $cacheKeyString = CRM_Dedupe_Merger::getMergeCacheKeyString($rgid, $gid, json_decode($criteria, TRUE));
+    $cacheKeyString = CRM_Utils_Request::retrieve('cacheKey', 'Alphanumeric', $null, FALSE);
 
     $params = array(
       1 => array($isSelected, 'Boolean'),
@@ -1054,7 +1053,7 @@ LIMIT {$offset}, {$rowCount}
    */
   public static function getContactRelationships() {
     $contactID = CRM_Utils_Type::escape($_GET['cid'], 'Integer');
-    $context = CRM_Utils_Type::escape($_GET['context'], 'String');
+    $context = CRM_Utils_Request::retrieve('context', 'Alphanumeric');
     $relationship_type_id = CRM_Utils_Type::escape(CRM_Utils_Array::value('relationship_type_id', $_GET), 'Integer', FALSE);
 
     if (!CRM_Contact_BAO_Contact_Permission::allow($contactID)) {

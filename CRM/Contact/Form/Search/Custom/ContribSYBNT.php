@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 class CRM_Contact_Form_Search_Custom_ContribSYBNT extends CRM_Contact_Form_Search_Custom_Base implements CRM_Contact_Form_Search_Interface {
 
@@ -192,10 +192,8 @@ ORDER BY   donation_amount desc
 ";
 
     if ($justIDs) {
-      CRM_Core_DAO::executeQuery("DROP TEMPORARY TABLE IF EXISTS CustomSearch_SYBNT_temp");
-      $query = "CREATE TEMPORARY TABLE CustomSearch_SYBNT_temp AS ({$sql})";
-      CRM_Core_DAO::executeQuery($query);
-      $sql = "SELECT contact_a.id as contact_id FROM CustomSearch_SYBNT_temp as contact_a";
+      $tempTable = CRM_Utils_SQL_TempTable::build()->createWithQuery($sql);
+      $sql = "SELECT contact_a.id as contact_id FROM {$tempTable->getName()} as contact_a";
     }
     return $sql;
   }
@@ -401,12 +399,16 @@ AND      c.receive_date < {$this->start_date_1}
   }
 
   /**
-   * Format saved search fields for this custom group
+   * Format saved search fields for this custom group.
+   *
+   * Note this is a function to facilitate the transition to jcalendar for
+   * saved search groups. In time it can be stripped out again.
    *
    * @param array $formValues
    *
+   * @return array
    */
-  public static function formatSavedSearchFields(&$formValues) {
+  public static function formatSavedSearchFields($formValues) {
     $dateFields = array(
       'start_date_1',
       'end_date_1',
@@ -420,6 +422,8 @@ AND      c.receive_date < {$this->start_date_1}
         $formValues[$element] = date('Y-m-d', strtotime($value));
       }
     }
+
+    return $formValues;
   }
 
 }

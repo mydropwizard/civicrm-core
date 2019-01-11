@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2017                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -105,9 +105,6 @@ function civicrm_api3_activity_create($params) {
         $activityDAO->id = $params['id'];
         $activityDAO->is_current_revision = 0;
         if (!$activityDAO->save()) {
-          if (is_object($activityDAO)) {
-            $activityDAO->free();
-          }
           throw new API_Exception(ts("Unable to revision existing case activity."));
         }
         $createRevision = TRUE;
@@ -341,6 +338,10 @@ function civicrm_api3_activity_get($params) {
   }
 
   $activities = _civicrm_api3_basic_get(_civicrm_api3_get_BAO(__FUNCTION__), $params, FALSE, 'Activity', $sql);
+  if ($options['is_count']) {
+    return civicrm_api3_create_success($activities, $params, 'Activity', 'get');
+  }
+
   if (!empty($params['check_permissions']) && !CRM_Core_Permission::check('view all activities')) {
     // @todo get this to work at the query level - see contact_id join above.
     foreach ($activities as $activity) {
@@ -348,9 +349,6 @@ function civicrm_api3_activity_get($params) {
         unset($activities[$activity['id']]);
       }
     }
-  }
-  if ($options['is_count']) {
-    return civicrm_api3_create_success($activities, $params, 'Activity', 'get');
   }
 
   $activities = _civicrm_api3_activity_get_formatResult($params, $activities, $options);
@@ -368,13 +366,11 @@ function civicrm_api3_activity_get($params) {
  */
 function _civicrm_api3_activity_get_extraFilters(&$params, &$sql) {
   // Filter by activity contacts
-  $recordTypes = civicrm_api3('ActivityContact', 'getoptions', array('field' => 'record_type_id'));
-  $recordTypes = $recordTypes['values'];
   $activityContactOptions = array(
     'contact_id' => NULL,
-    'target_contact_id' => array_search('Activity Targets', $recordTypes),
-    'source_contact_id' => array_search('Activity Source', $recordTypes),
-    'assignee_contact_id' => array_search('Activity Assignees', $recordTypes),
+    'target_contact_id' => CRM_Core_PseudoConstant::getKey('CRM_Activity_BAO_ActivityContact', 'record_type_id', 'Activity Targets'),
+    'source_contact_id' => CRM_Core_PseudoConstant::getKey('CRM_Activity_BAO_ActivityContact', 'record_type_id', 'Activity Source'),
+    'assignee_contact_id' => CRM_Core_PseudoConstant::getKey('CRM_Activity_BAO_ActivityContact', 'record_type_id', 'Activity Assignees'),
   );
   foreach ($activityContactOptions as $activityContactName => $activityContactValue) {
     if (!empty($params[$activityContactName])) {

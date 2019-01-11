@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -42,7 +42,7 @@ class CRM_Contribute_Form_ContributionView extends CRM_Core_Form {
   public function preProcess() {
     $id = $this->get('id');
     $params = array('id' => $id);
-    $context = CRM_Utils_Request::retrieve('context', 'String', $this);
+    $context = CRM_Utils_Request::retrieve('context', 'Alphanumeric', $this);
     $this->assign('context', $context);
 
     $values = CRM_Contribute_BAO_Contribution::getValuesWithMappings($params);
@@ -190,7 +190,7 @@ class CRM_Contribute_Form_ContributionView extends CRM_Core_Form {
     // assign values to the template
     $this->assign($values);
     $invoiceSettings = Civi::settings()->get('contribution_invoice_settings');
-    $invoicing = CRM_Utils_Array::value('invoicing', $invoiceSettings);
+    $invoicing = CRM_Invoicing_Utils::isInvoicingEnabled();
     $this->assign('invoicing', $invoicing);
     $this->assign('isDeferred', CRM_Utils_Array::value('deferred_revenue_enabled', $invoiceSettings));
     if ($invoicing && isset($values['tax_amount'])) {

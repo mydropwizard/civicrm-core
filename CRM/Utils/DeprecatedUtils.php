@@ -3,7 +3,7 @@
   +--------------------------------------------------------------------+
   | CiviCRM version 5                                                  |
   +--------------------------------------------------------------------+
-  | Copyright CiviCRM LLC (c) 2004-2018                                |
+  | Copyright CiviCRM LLC (c) 2004-2019                                |
   +--------------------------------------------------------------------+
   | This file is a part of CiviCRM.                                    |
   |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /*
@@ -863,7 +863,6 @@ function _civicrm_api3_deprecated_add_formatted_param(&$values, &$params) {
           $htmlType = CRM_Utils_Array::value('html_type', $customFields[$customFieldID]);
           switch ($htmlType) {
             case 'CheckBox':
-            case 'AdvMulti-Select':
             case 'Multi-Select':
               if ($val) {
                 $mulValues = explode(',', $val);
@@ -1269,7 +1268,7 @@ function _civicrm_api3_deprecated_contact_check_params(
     // @todo switch to using api version
     // $dupes = civicrm_api3('Contact', 'duplicatecheck', (array('match' => $params, 'dedupe_rule_id' => $dedupeRuleGroupID)));
     // $ids = $dupes['count'] ? implode(',', array_keys($dupes['values'])) : NULL;
-    $ids = CRM_Contact_BAO_Contact::getDuplicateContacts($params, $params['contact_type'], 'Unsupervised', array(), CRM_Utils_Array::value('check_permissions', $params, $dedupeRuleGroupID));
+    $ids = CRM_Contact_BAO_Contact::getDuplicateContacts($params, $params['contact_type'], 'Unsupervised', array(), CRM_Utils_Array::value('check_permissions', $params), $dedupeRuleGroupID);
     if ($ids != NULL) {
       $error = CRM_Core_Error::createError("Found matching contacts: " . implode(',', $ids),
         CRM_Core_Error::DUPLICATE_CONTACT,

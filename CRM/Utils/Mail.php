@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 class CRM_Utils_Mail {
 
@@ -537,6 +537,66 @@ class CRM_Utils_Mail {
       'mime_type' => 'application/pdf',
       'cleanName' => $fileName,
     );
+  }
+
+  /**
+   * Format an email string from email fields.
+   *
+   * @param array $fields
+   *   The email fields.
+   * @return string
+   *   The formatted email string.
+   */
+  public static function format($fields) {
+    $formattedEmail = '';
+    if (!empty($fields['email'])) {
+      $formattedEmail = $fields['email'];
+    }
+
+    $formattedSuffix = array();
+    if (!empty($fields['is_bulkmail'])) {
+      $formattedSuffix[] = '(' . ts('Bulk') . ')';
+    }
+    if (!empty($fields['on_hold'])) {
+      if ($fields['on_hold'] == 2) {
+        $formattedSuffix[] = '(' . ts('On Hold - Opt Out') . ')';
+      }
+      else {
+        $formattedSuffix[] = '(' . ts('On Hold') . ')';
+      }
+    }
+    if (!empty($fields['signature_html']) || !empty($fields['signature_text'])) {
+      $formattedSuffix[] = '(' . ts('Signature') . ')';
+    }
+
+    // Add suffixes on a new line, if there is any.
+    if (!empty($formattedSuffix)) {
+      $formattedEmail .= "\n" . implode(' ', $formattedSuffix);
+    }
+
+    return $formattedEmail;
+  }
+
+  /**
+   * When passed a value, returns the value if it's non-numeric.
+   * If it's numeric, look up the display name and email of the corresponding
+   * contact ID in RFC822 format.
+   *
+   * @param string $from
+   *   contact ID or formatted "From address", eg. 12 or "Fred Bloggs" <fred@example.org>
+   * @return string
+   *   The RFC822-formatted email header (display name + address)
+   */
+  public static function formatFromAddress($from) {
+    if (is_numeric($from)) {
+      $result = civicrm_api3('Email', 'get', [
+        'id' => $from,
+        'return' => ['contact_id.display_name', 'email'],
+        'sequential' => 1,
+      ])['values'][0];
+      $from = '"' . $result['contact_id.display_name'] . '" <' . $result['email'] . '>';
+    }
+    return $from;
   }
 
 }

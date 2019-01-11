@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  * $Id$
  *
  */
@@ -98,9 +98,8 @@ class CRM_Core_Page_AJAX {
       $id = CRM_Utils_Type::escape($_REQUEST['id'], 'Integer');
     }
 
-    if (!empty($_REQUEST['context'])) {
-      $context = CRM_Utils_Type::escape($_REQUEST['context'], 'String');
-    }
+    $context = CRM_Utils_Request::retrieve('context', 'Alphanumeric');
+
     // return false if $id is null and
     // $context is not civicrm_event or civicrm_contribution_page
     if (!$id || !in_array($context, array('civicrm_event', 'civicrm_contribution_page'))) {

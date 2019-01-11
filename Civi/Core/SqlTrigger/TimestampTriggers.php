@@ -4,7 +4,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -36,7 +36,7 @@ use Civi\Core\Event\GenericHookEvent;
  * This class is a generalization of CRM-10554 with the aim of enabling CRM-20958.
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 class TimestampTriggers {
 
@@ -145,7 +145,7 @@ class TimestampTriggers {
     // In the past, this was a version-based check, but checkFieldExists()
     // seems more robust.
     if (\CRM_Core_Config::isUpgradeMode()) {
-      if (!\CRM_Core_DAO::checkFieldExists($this->getTableName(),
+      if (!\CRM_Core_BAO_SchemaHandler::checkIfFieldExists($this->getTableName(),
         $this->getCreatedDate())
       ) {
         return;

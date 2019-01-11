@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -27,7 +27,7 @@
 
 /**
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -47,6 +47,15 @@ class CRM_Case_Form_Task extends CRM_Core_Form_Task {
     $this->_contactIds = CRM_Core_DAO::getContactIDsFromComponent($this->_entityIds,
       'civicrm_case_contact', 'case_id'
     );
+  }
+
+  /**
+   * Get the query mode (eg. CRM_Core_BAO_Query::MODE_CASE)
+   *
+   * @return int
+   */
+  public function getQueryMode() {
+    return CRM_Contact_BAO_Query::MODE_CASE;
   }
 
 }

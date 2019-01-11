@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2017                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2017
+ * @copyright CiviCRM LLC (c) 2004-2019
  * $Id$
  *
  * Settings metadata file
@@ -72,7 +72,7 @@ return array(
     ),
     'default' => NULL,
     'title' => 'Geocoding Provider',
-    'description' => 'You may choose a different webservice for geocoding or select the same service.',
+    'description' => 'This can be the same or different from the mapping provider selected.',
   ),
   'mapAPIKey' => array(
     'add' => '4.7',

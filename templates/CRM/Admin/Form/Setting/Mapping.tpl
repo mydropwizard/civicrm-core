@@ -2,7 +2,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -42,7 +42,7 @@
          <tr class="crm-map-form-block-geoProvider">
              <td>{$form.geoProvider.label}</td>
              <td>{$form.geoProvider.html}<br />
-             <span class="description">{ts}You may choose a different webservice for geocoding or select the same service.{/ts}</span></td>
+             <span class="description">{ts}This can be the same or different from the mapping provider selected.{/ts}</span></td>
          </tr>
          <tr class="crm-map-form-block-geoAPIKey">
              <td>{$form.geoAPIKey.label}</td>

@@ -3,7 +3,7 @@
   +--------------------------------------------------------------------+
   | CiviCRM version 5                                                  |
   +--------------------------------------------------------------------+
-  | Copyright CiviCRM LLC (c) 2004-2018                                |
+  | Copyright CiviCRM LLC (c) 2004-2019                                |
   +--------------------------------------------------------------------+
   | This file is a part of CiviCRM.                                    |
   |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -439,6 +439,23 @@ class CRM_Utils_Date {
   }
 
   /**
+   * Wrapper for customFormat that takes a timestamp
+   *
+   * @param int $timestamp
+   *   Date and time in timestamp format.
+   * @param string $format
+   *   The output format.
+   * @param array $dateParts
+   *   An array with the desired date parts.
+   *
+   * @return string
+   *   the $format-formatted $date
+   */
+  public static function customFormatTs($timestamp, $format = NULL, $dateParts = NULL) {
+    return CRM_Utils_Date::customFormat(date("Y-m-d H:i:s", $timestamp), $format, $dateParts);
+  }
+
+  /**
    * Converts the date/datetime from MySQL format to ISO format
    *
    * @param string $mysql
@@ -696,6 +713,58 @@ class CRM_Utils_Date {
   }
 
   /**
+   * Translate a TTL to a concrete expiration time.
+   *
+   * @param NULL|int|DateInterval $ttl
+   * @param int $default
+   *   The value to use if $ttl is not specified (NULL).
+   * @return int
+   *   Timestamp (seconds since epoch).
+   * @throws \CRM_Utils_Cache_InvalidArgumentException
+   */
+  public static function convertCacheTtlToExpires($ttl, $default) {
+    if ($ttl === NULL) {
+      $ttl = $default;
+    }
+
+    if (is_int($ttl)) {
+      return time() + $ttl;
+    }
+    elseif ($ttl instanceof DateInterval) {
+      return date_add(new DateTime(), $ttl)->getTimestamp();
+    }
+    else {
+      throw new CRM_Utils_Cache_InvalidArgumentException("Invalid cache TTL");
+    }
+  }
+
+  /**
+   * Normalize a TTL.
+   *
+   * @param NULL|int|DateInterval $ttl
+   * @param int $default
+   *   The value to use if $ttl is not specified (NULL).
+   * @return int
+   *   Seconds until expiration.
+   * @throws \CRM_Utils_Cache_InvalidArgumentException
+   */
+  public static function convertCacheTtl($ttl, $default) {
+    if ($ttl === NULL) {
+      return $default;
+    }
+    elseif (is_int($ttl)) {
+      return $ttl;
+    }
+    elseif ($ttl instanceof DateInterval) {
+      return date_add(new DateTime(), $ttl)->getTimestamp() - time();
+    }
+    else {
+      throw new CRM_Utils_Cache_InvalidArgumentException("Invalid cache TTL");
+    }
+  }
+
+
+  /**
    * @param null $timeStamp
    *
    * @return bool|string
@@ -719,7 +788,7 @@ class CRM_Utils_Date {
       $now = self::isoToMysql($now);
     }
 
-    return ($mysqlDate >= $now) ? FALSE : TRUE;
+    return (strtotime($mysqlDate) >= strtotime($now)) ? FALSE : TRUE;
   }
 
   /**
@@ -1157,6 +1226,17 @@ class CRM_Utils_Date {
             $to['M'] = $now['mon'];
             $to['Y'] = $now['year'] + 1;
             break;
+
+          default:
+            if ($relativeTermPrefix === 'ending') {
+              $to['d'] = $now['mday'];
+              $to['M'] = $now['mon'];
+              $to['Y'] = $now['year'];
+              $to['H'] = 23;
+              $to['i'] = $to['s'] = 59;
+              $from = self::intervalAdd('year', -$relativeTermSuffix, $to);
+              $from = self::intervalAdd('second', 1, $from);
+            }
         }
         break;
 
@@ -1381,6 +1461,17 @@ class CRM_Utils_Date {
             $to = self::intervalAdd('day', 90, $from);
             $to = self::intervalAdd('second', -1, $to);
             break;
+
+          default:
+            if ($relativeTermPrefix === 'ending') {
+              $to['d'] = $now['mday'];
+              $to['M'] = $now['mon'];
+              $to['Y'] = $now['year'];
+              $to['H'] = 23;
+              $to['i'] = $to['s'] = 59;
+              $from = self::intervalAdd('month', -($relativeTermSuffix * 3), $to);
+              $from = self::intervalAdd('second', 1, $from);
+            }
         }
         break;
 
@@ -1550,6 +1641,17 @@ class CRM_Utils_Date {
             $to = self::intervalAdd('day', 60, $from);
             $to = self::intervalAdd('second', -1, $to);
             break;
+
+          default:
+            if ($relativeTermPrefix === 'ending') {
+              $to['d'] = $now['mday'];
+              $to['M'] = $now['mon'];
+              $to['Y'] = $now['year'];
+              $to['H'] = 23;
+              $to['i'] = $to['s'] = 59;
+              $from = self::intervalAdd($unit, -$relativeTermSuffix, $to);
+              $from = self::intervalAdd('second', 1, $from);
+            }
         }
         break;
 
@@ -1667,6 +1769,17 @@ class CRM_Utils_Date {
             $to = self::intervalAdd('day', 7, $from);
             $to = self::intervalAdd('second', -1, $to);
             break;
+
+          default:
+            if ($relativeTermPrefix === 'ending') {
+              $to['d'] = $now['mday'];
+              $to['M'] = $now['mon'];
+              $to['Y'] = $now['year'];
+              $to['H'] = 23;
+              $to['i'] = $to['s'] = 59;
+              $from = self::intervalAdd($unit, -$relativeTermSuffix, $to);
+              $from = self::intervalAdd('second', 1, $from);
+            }
         }
         break;
 
@@ -1730,6 +1843,16 @@ class CRM_Utils_Date {
             $from['Y'] = $to['Y'];
             break;
 
+          default:
+            if ($relativeTermPrefix === 'ending') {
+              $to['d'] = $now['mday'];
+              $to['M'] = $now['mon'];
+              $to['Y'] = $now['year'];
+              $to['H'] = 23;
+              $to['i'] = $to['s'] = 59;
+              $from = self::intervalAdd($unit, -$relativeTermSuffix, $to);
+              $from = self::intervalAdd('second', 1, $from);
+            }
         }
         break;
     }

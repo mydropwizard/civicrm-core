@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 class CRM_Contact_Page_DedupeRules extends CRM_Core_Page_Basic {
 
@@ -101,7 +101,7 @@ class CRM_Contact_Page_DedupeRules extends CRM_Core_Page_Basic {
   public function run() {
     $id = $this->getIdAndAction();
 
-    $context = CRM_Utils_Request::retrieve('context', 'String', $this, FALSE);
+    $context = CRM_Utils_Request::retrieve('context', 'Alphanumeric', $this, FALSE);
     if ($context == 'nonDupe') {
       CRM_Core_Session::setStatus(ts('Selected contacts have been marked as not duplicates'), ts('Changes Saved'), 'success');
     }

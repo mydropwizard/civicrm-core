@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -76,7 +76,7 @@ class CRM_Campaign_Form_Campaign extends CRM_Core_Form {
       CRM_Utils_System::permissionDenied();
     }
 
-    $this->_context = CRM_Utils_Request::retrieve('context', 'String', $this);
+    $this->_context = CRM_Utils_Request::retrieve('context', 'Alphanumeric', $this);
 
     $this->assign('context', $this->_context);
 
@@ -136,18 +136,8 @@ class CRM_Campaign_Form_Campaign extends CRM_Core_Form {
   public function setDefaultValues() {
     $defaults = $this->_values;
 
-    if (isset($defaults['start_date'])) {
-      list($defaults['start_date'], $defaults['start_date_time'])
-        = CRM_Utils_Date::setDateDefaults($defaults['start_date'], 'activityDateTime');
-    }
-    else {
-      list($defaults['start_date'], $defaults['start_date_time'])
-        = CRM_Utils_Date::setDateDefaults();
-    }
-
-    if (isset($defaults['end_date'])) {
-      list($defaults['end_date'], $defaults['end_date_time'])
-        = CRM_Utils_Date::setDateDefaults($defaults['end_date'], 'activityDateTime');
+    if (empty($defaults['start_date'])) {
+      $defaults['start_date'] = date('Y-m-d H:i:s');
     }
 
     if (!isset($defaults['is_active'])) {
@@ -208,10 +198,10 @@ class CRM_Campaign_Form_Campaign extends CRM_Core_Form {
     $this->add('textarea', 'description', ts('Description'), $attributes['description']);
 
     // add campaign start date
-    $this->addDateTime('start_date', ts('Start Date'), TRUE, array('formatType' => 'activityDateTime'));
+    $this->add('datepicker', 'start_date', ts('Start Date'), [], TRUE);
 
     // add campaign end date
-    $this->addDateTime('end_date', ts('End Date'), FALSE, array('formatType' => 'activityDateTime'));
+    $this->add('datepicker', 'end_date', ts('End Date'));
 
     // add campaign type
     $this->addSelect('campaign_type_id', array('onChange' => "CRM.buildCustomData( 'Campaign', this.value );"), TRUE);
@@ -313,8 +303,6 @@ class CRM_Campaign_Form_Campaign extends CRM_Core_Form {
       $params['created_date'] = date('YmdHis');
     }
     // format params
-    $params['start_date'] = CRM_Utils_Date::processDate($params['start_date'], $params['start_date_time']);
-    $params['end_date'] = CRM_Utils_Date::processDate($params['end_date'], $params['end_date_time'], TRUE);
     $params['is_active'] = CRM_Utils_Array::value('is_active', $params, FALSE);
     $params['last_modified_id'] = $session->get('userID');
     $params['last_modified_date'] = date('YmdHis');

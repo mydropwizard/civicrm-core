@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5  .alpha1                                         |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -180,6 +180,32 @@ class CRM_Upgrade_Incremental_Base {
       $locales = explode(CRM_Core_DAO::VALUE_SEPARATOR, $domain->locales);
       CRM_Core_I18n_Schema::rebuildMultilingualSchema($locales, NULL, TRUE);
     }
+    return TRUE;
+  }
+
+  /**
+   * Do any relevant message template updates.
+   *
+   * @param CRM_Queue_TaskContext $ctx
+   * @param string $version
+   */
+  public static function updateMessageTemplates($ctx, $version) {
+    $messageTemplateObject = new CRM_Upgrade_Incremental_MessageTemplates($version);
+    $messageTemplateObject->updateTemplates();
+
+  }
+
+  /**
+   * Do any relevant smart group updates.
+   *
+   * @param CRM_Queue_TaskContext $ctx
+   * @param string $version
+   *
+   * @return bool
+   */
+  public function updateSmartGroups($ctx, $version) {
+    $groupUpdateObject = new CRM_Upgrade_Incremental_SmartGroups($version);
+    $groupUpdateObject->updateGroups();
     return TRUE;
   }
 

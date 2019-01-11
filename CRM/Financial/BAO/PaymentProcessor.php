@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -150,9 +150,8 @@ class CRM_Financial_BAO_PaymentProcessor extends CRM_Financial_DAO_PaymentProces
    * @param bool $is_active
    *   Value we want to set the is_active field.
    *
-   * @return CRM_Financial_DAO_PaymentProcessor|null
-   *   DAO object on success, null otherwise
-   *
+   * @return bool
+   *   true if we found and updated the object, else false
    */
   public static function setIsActive($id, $is_active) {
     return CRM_Core_DAO::setFieldValue('CRM_Financial_DAO_PaymentProcessor', $id, 'is_active', $is_active);
@@ -273,7 +272,7 @@ class CRM_Financial_BAO_PaymentProcessor extends CRM_Financial_DAO_PaymentProces
    */
   public static function getAllPaymentProcessors($mode = 'all', $reset = FALSE, $isCurrentDomainOnly = TRUE) {
 
-    $cacheKey = 'CRM_Financial_BAO_Payment_Processor_' . $mode . '_' . CRM_Core_Config::domainID();
+    $cacheKey = 'CRM_Financial_BAO_Payment_Processor_' . $mode . '_' . $isCurrentDomainOnly . '_' . CRM_Core_Config::domainID();
     if (!$reset) {
       $processors = CRM_Utils_Cache::singleton()->get($cacheKey);
       if (!empty($processors)) {
@@ -370,10 +369,10 @@ class CRM_Financial_BAO_PaymentProcessor extends CRM_Financial_DAO_PaymentProces
   public static function getPaymentProcessors($capabilities = array(), $ids = FALSE) {
     $testProcessors = in_array('TestMode', $capabilities) ? self::getAllPaymentProcessors('test') : array();
     if (is_array($ids)) {
-      $processors = self::getAllPaymentProcessors('all', TRUE, FALSE);
+      $processors = self::getAllPaymentProcessors('all', FALSE, FALSE);
     }
     else {
-      $processors = self::getAllPaymentProcessors('all', TRUE);
+      $processors = self::getAllPaymentProcessors('all');
     }
 
     if (in_array('TestMode', $capabilities) && is_array($ids)) {
@@ -596,6 +595,18 @@ INNER JOIN civicrm_contribution       con ON ( mp.contribution_id = con.id )
     else {
       parent::assignTestValue($fieldName, $fieldDef, $counter);
     }
+  }
+
+  /**
+   * Get the default financial account id for payment processor accounts.
+   *
+   * Note that there is only a 'name' field & no label field. If people customise
+   * name then this won't work. This is new best-effort functionality so that's non-regressive.
+   *
+   * The fix for that is to add a label value to the financial account table.
+   */
+  public static function getDefaultFinancialAccountID() {
+    return CRM_Core_PseudoConstant::getKey('CRM_Financial_DAO_EntityFinancialAccount', 'financial_account_id', 'Payment Processor Account');
   }
 
 }

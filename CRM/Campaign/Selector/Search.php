@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -271,7 +271,7 @@ class CRM_Campaign_Selector_Search extends CRM_Core_Selector_Base implements CRM
 
     if (!$crmPID) {
       $cacheKey = "civicrm search {$this->_key}";
-      CRM_Core_BAO_PrevNextCache::deleteItem(NULL, $cacheKey, 'civicrm_contact');
+      Civi::service('prevnext')->deleteItem(NULL, $cacheKey, 'civicrm_contact');
 
       $sql = $this->_query->searchQuery(0, 0, $sort,
         FALSE, FALSE,
@@ -281,20 +281,23 @@ class CRM_Campaign_Selector_Search extends CRM_Core_Selector_Base implements CRM
         $this->_campaignFromClause
       );
       list($select, $from) = explode(' FROM ', $sql);
-      $insertSQL = "
-INSERT INTO civicrm_prevnext_cache ( entity_table, entity_id1, entity_id2, cacheKey, data )
-SELECT 'civicrm_contact', contact_a.id, contact_a.id, '$cacheKey', contact_a.display_name
+      $selectSQL = "
+      SELECT '$cacheKey', contact_a.id, contact_a.display_name
 FROM {$from}
 ";
-      $errorScope = CRM_Core_TemporaryErrorScope::ignoreException();
-      $result = CRM_Core_DAO::executeQuery($insertSQL);
-      unset($errorScope);
 
-      if (is_a($result, 'DB_Error')) {
+      try {
+        Civi::service('prevnext')->fillWithSql($cacheKey, $selectSQL);
+      }
+      catch (CRM_Core_Exception $e) {
+        // Heavy handed, no? Seems like this merits an explanation.
         return;
       }
-      // also record an entry in the cache key table, so we can delete it periodically
-      CRM_Core_BAO_Cache::setItem($cacheKey, 'CiviCRM Search PrevNextCache', $cacheKey);
+
+      if (Civi::service('prevnext') instanceof CRM_Core_PrevNextCache_Sql) {
+        // SQL-backed prevnext cache uses an extra record for pruning the cache.
+        CRM_Core_BAO_Cache::setItem($cacheKey, 'CiviCRM Search PrevNextCache', $cacheKey);
+      }
     }
   }
 

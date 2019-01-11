@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -44,11 +44,15 @@ class CRM_Admin_Form_RelationshipType extends CRM_Admin_Form {
    * Fields may have keys
    *  - name (required to show in tpl from the array)
    *  - description (optional, will appear below the field)
+   *     Auto-added by setEntityFieldsMetadata unless specified here (use description => '' to hide)
    *  - not-auto-addable - this class will not attempt to add the field using addField.
    *    (this will be automatically set if the field does not have html in it's metadata
    *    or is not a core field on the form's entity).
    *  - help (option) add help to the field - e.g ['id' => 'id-source', 'file' => 'CRM/Contact/Form/Contact']]
    *  - template - use a field specific template to render this field
+   *  - required
+   *  - is_freeze (field should be frozen).
+   *
    * @var array
    */
   protected $entityFields = [];
@@ -60,17 +64,23 @@ class CRM_Admin_Form_RelationshipType extends CRM_Admin_Form {
     $this->entityFields = [
       'label_a_b' => [
         'name' => 'label_a_b',
-        'description' => ts("Label for the relationship from Contact A to Contact B. EXAMPLE: Contact A is 'Parent of' Contact B.")
+        'description' => ts("Label for the relationship from Contact A to Contact B. EXAMPLE: Contact A is 'Parent of' Contact B."),
+        'required' => TRUE,
       ],
       'label_b_a' => [
         'name' => 'label_b_a',
         'description' => ts("Label for the relationship from Contact B to Contact A. EXAMPLE: Contact B is 'Child of' Contact A. You may leave this blank for relationships where the name is the same in both directions (e.g. Spouse).")
       ],
-      'description' => ['name' => 'description'],
+      'description' => [
+        'name' => 'description',
+        'description' => ''
+      ],
       'contact_types_a' => ['name' => 'contact_types_a', 'not-auto-addable' => TRUE],
       'contact_types_b' => ['name' => 'contact_types_b', 'not-auto-addable' => TRUE],
       'is_active' => ['name' => 'is_active'],
     ];
+
+    self::setEntityFieldsMetadata();
   }
 
   /**
@@ -100,6 +110,8 @@ class CRM_Admin_Form_RelationshipType extends CRM_Admin_Form {
    * Build the form object.
    */
   public function buildQuickForm() {
+    $isReserved = ($this->_id && CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_RelationshipType', $this->_id, 'is_reserved'));
+    $this->entityFields['is_active']['is_freeze'] = $isReserved;
 
     self::buildQuickEntityForm();
     if ($this->_action & CRM_Core_Action::DELETE) {
@@ -114,25 +126,14 @@ class CRM_Admin_Form_RelationshipType extends CRM_Admin_Form {
     );
 
     $contactTypes = CRM_Contact_BAO_ContactType::getSelectElements(FALSE, TRUE, '__');
-
-    // add select for contact type
-    $this->add('select', 'contact_types_a', ts('Contact Type A') . ' ',
-      array(
-        '' => ts('All Contacts'),
-      ) + $contactTypes
-    );
-    $this->add('select', 'contact_types_b', ts('Contact Type B') . ' ',
-      array(
-        '' => ts('All Contacts'),
-      ) + $contactTypes
-    );
-
-    //only selected field should be allow for edit, CRM-4888
-    if ($this->_id &&
-      CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_RelationshipType', $this->_id, 'is_reserved')
-    ) {
-      foreach (array('contactTypeA', 'contactTypeB', 'isActive') as $field) {
-        $$field->freeze();
+    foreach (['contact_types_a' => ts('Contact Type A'), 'contact_types_b' => ts('Contact Type B')] as $name => $label) {
+      $element = $this->add('select', $name, $label . ' ',
+        array(
+          '' => ts('All Contacts'),
+        ) + $contactTypes
+      );
+      if ($isReserved) {
+        $element->freeze();
       }
     }
 

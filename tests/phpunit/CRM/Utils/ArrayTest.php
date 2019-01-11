@@ -260,7 +260,7 @@ class CRM_Utils_ArrayTest extends CiviUnitTestCase {
    * @dataProvider getRecursiveIssetExamples
    */
   public function testRecursiveIsset($array, $path, $expected) {
-    $result = CRM_Utils_Array::recursiveIsset($array, $path);
+    $result = CRM_Utils_Array::pathIsset($array, $path);
     $this->assertEquals($expected, $result);
   }
 
@@ -294,8 +294,77 @@ class CRM_Utils_ArrayTest extends CiviUnitTestCase {
    * @dataProvider getRecursiveValueExamples
    */
   public function testRecursiveValue($array, $path, $default, $expected) {
-    $result = CRM_Utils_Array::recursiveValue($array, $path, $default);
+    $result = CRM_Utils_Array::pathGet($array, $path, $default);
     $this->assertEquals($expected, $result);
+  }
+
+  /**
+   * Get values for build test.
+   */
+  public function getBuildValueExamples() {
+    return [
+      [
+        [], [0, 'email', 2, 'location'], [0 => ['email' => [2 => ['location' => 'llama']]]],
+      ],
+      [
+        ['foo', 'bar', [['donkey']]], [2, 0, 1], ['foo', 'bar', [['donkey', 'llama']]],
+      ],
+      [
+        ['a' => [1, 2, 3], 'b' => ['x' => [], 'y' => ['a' => 'donkey', 'b' => 'bear'], 'z' => [4, 5, 6]]], ['b', 'y', 'b'], ['a' => [1, 2, 3], 'b' => ['x' => [], 'y' => ['a' => 'donkey', 'b' => 'llama'], 'z' => [4, 5, 6]]],
+      ],
+    ];
+  }
+
+  /**
+   * Test the build recursive function.
+   *
+   * @param $path
+   * @param $expected
+   *
+   * @dataProvider getBuildValueExamples
+   */
+  public function testBuildRecursiveValue($source, $path, $expected) {
+    CRM_Utils_Array::pathSet($source, $path, 'llama');
+    $this->assertEquals($expected, $source);
+  }
+
+  /**
+   * Test the flatten function
+   */
+  public function testFlatten() {
+    $data = [
+      'my_array' => [
+        '0' => 'bar',
+        '1' => 'baz',
+        '2' => 'boz',
+      ],
+      'my_complex' => [
+         'dog' => 'woof',
+         'asdf' => [
+           'my_zero' => 0,
+           'my_int' => 1,
+           'my_null' => NULL,
+           'my_empty' => '',
+         ],
+      ],
+      'my_simple' => 999,
+    ];
+
+    $expected = [
+      'my_array.0' => 'bar',
+      'my_array.1' => 'baz',
+      'my_array.2' => 'boz',
+      'my_complex.dog' => 'woof',
+      'my_complex.asdf.my_zero' => 0,
+      'my_complex.asdf.my_int' => 1,
+      'my_complex.asdf.my_null' => NULL,
+      'my_complex.asdf.my_empty' => '',
+      'my_simple' => 999,
+    ];
+
+    $flat = [];
+    CRM_Utils_Array::flatten($data, $flat);
+    $this->assertEquals($flat, $expected);
   }
 
 }

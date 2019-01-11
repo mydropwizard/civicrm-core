@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -58,7 +58,7 @@ class CRM_Contact_Form_Edit_Email {
     $form->applyFilter('__ALL__', 'trim');
 
     //Email box
-    $form->addField("email[$blockId][email]", array('entity' => 'email'));
+    $form->addField("email[$blockId][email]", array('entity' => 'email', 'aria-label' => ts('Email %1', [1 => $blockId])));
     $form->addRule("email[$blockId][email]", ts('Email is not valid.'), 'email');
     if (isset($form->_contactType) || $blockEdit) {
       //Block type
@@ -77,25 +77,19 @@ class CRM_Contact_Form_Edit_Email {
         $form->addElement('select', "email[$blockId][on_hold]", '', $holdOptions);
       }
       else {
-        $form->addField("email[$blockId][on_hold]", array('entity' => 'email', 'type' => 'advcheckbox'));
+        $form->addField("email[$blockId][on_hold]", array('entity' => 'email', 'type' => 'advcheckbox', 'aria-label' => ts('On Hold for Email %1?', [1 => $blockId])));
       }
 
       //Bulkmail checkbox
       $form->assign('multipleBulk', $multipleBulk);
-      if ($multipleBulk) {
-        $js = array('id' => "Email_" . $blockId . "_IsBulkmail");
-        $form->addElement('advcheckbox', "email[$blockId][is_bulkmail]", NULL, '', $js);
+      $js = array('id' => "Email_" . $blockId . "_IsBulkmail" , 'aria-label' => ts('Bulk Mailing for Email %1?', [1 => $blockId]));
+      if (!$blockEdit) {
+        $js['onClick'] = 'singleSelect( this.id );';
       }
-      else {
-        $js = array('id' => "Email_" . $blockId . "_IsBulkmail");
-        if (!$blockEdit) {
-          $js['onClick'] = 'singleSelect( this.id );';
-        }
-        $form->addElement('radio', "email[$blockId][is_bulkmail]", '', '', '1', $js);
-      }
+      $form->addElement('advcheckbox', "email[$blockId][is_bulkmail]", NULL, '', $js);
 
       //is_Primary radio
-      $js = array('id' => "Email_" . $blockId . "_IsPrimary");
+      $js = array('id' => "Email_" . $blockId . "_IsPrimary", 'aria-label' => ts('Email %1 is primary?', [1 => $blockId]));
       if (!$blockEdit) {
         $js['onClick'] = 'singleSelect( this.id );';
       }

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -1191,6 +1191,8 @@ class CRM_Utils_System {
     ) {
       // ensure that SSL is enabled on a civicrm url (for cookie reasons etc)
       $url = "https://{$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}";
+      // @see https://lab.civicrm.org/dev/core/issues/425 if you're seeing this message.
+      Civi::log()->warning('CiviCRM thinks site is not SSL, redirecting to {url}', ['url' => $url]);
       if (!self::checkURL($url, TRUE)) {
         if ($abort) {
           CRM_Core_Error::fatal('HTTPS is not set up on this machine');
@@ -1396,6 +1398,10 @@ class CRM_Utils_System {
    *   (optional) Code with which to exit.
    */
   public static function civiExit($status = 0) {
+
+    if ($status > 0) {
+      http_response_code(500);
+    }
     // move things to CiviCRM cache as needed
     CRM_Core_Session::storeSessionObjects();
 
@@ -1416,8 +1422,22 @@ class CRM_Utils_System {
   public static function flushCache() {
     // flush out all cache entries so we can reload new data
     // a bit aggressive, but livable for now
-    $cache = CRM_Utils_Cache::singleton();
-    $cache->flush();
+    CRM_Utils_Cache::singleton()->flush();
+
+    // Traditionally, systems running on memory-backed caches were quite
+    // zealous about destroying *all* memory-backed caches during a flush().
+    // These flushes simulate that legacy behavior. However, they should probably
+    // be removed at some point.
+    $localDrivers = ['CRM_Utils_Cache_Arraycache', 'CRM_Utils_Cache_NoCache'];
+    if (Civi\Core\Container::isContainerBooted()
+      && !in_array(get_class(CRM_Utils_Cache::singleton()), $localDrivers)) {
+      Civi::cache('long')->flush();
+      Civi::cache('settings')->flush();
+      Civi::cache('js_strings')->flush();
+      Civi::cache('community_messages')->flush();
+      CRM_Extension_System::singleton()->getCache()->flush();
+      CRM_Cxn_CiviCxnHttp::singleton()->getCache()->flush();
+    }
 
     // also reset the various static memory caches
 
@@ -1454,7 +1474,11 @@ class CRM_Utils_System {
       $params = array();
     }
     $config = CRM_Core_Config::singleton();
-    return $config->userSystem->loadBootStrap($params, $loadUser, $throwError, $realPath);
+    $result = $config->userSystem->loadBootStrap($params, $loadUser, $throwError, $realPath);
+    if (is_callable([$config->userSystem, 'setMySQLTimeZone'])) {
+      $config->userSystem->setMySQLTimeZone();
+    }
+    return $result;
   }
 
   /**

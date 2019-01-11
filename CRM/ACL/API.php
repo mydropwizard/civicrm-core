@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 class CRM_ACL_API {
 
@@ -113,17 +113,17 @@ class CRM_ACL_API {
       }
     }
 
-    // first see if the contact has edit / view all contacts
-    if (CRM_Core_Permission::check('edit all contacts') ||
-      ($type == self::VIEW && CRM_Core_Permission::check('view all contacts'))
-    ) {
-      return $deleteClause;
-    }
-
     if (!$contactID) {
       $contactID = CRM_Core_Session::getLoggedInContactID();
     }
     $contactID = (int) $contactID;
+
+    // first see if the contact has edit / view all permission
+    if (CRM_Core_Permission::check('edit all contacts', $contactID) ||
+      ($type == self::VIEW && CRM_Core_Permission::check('view all contacts', $contactID))
+    ) {
+      return $deleteClause;
+    }
 
     $where = implode(' AND ',
       array(

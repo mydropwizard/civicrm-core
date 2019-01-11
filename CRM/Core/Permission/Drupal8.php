@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  * $Id$
  *
  */
@@ -43,11 +43,11 @@ class CRM_Core_Permission_Drupal8 extends CRM_Core_Permission_DrupalBase {
    * @param string $str
    *   The permission to check.
    *
-   * @param null $contactID
+   * @param int $userId
    *
    * @return bool
    */
-  public function check($str, $contactID = NULL) {
+  public function check($str, $userId = NULL) {
     $str = $this->translatePermission($str, 'Drupal', array(
       'view user account' => 'access user profiles',
     ));
@@ -58,7 +58,8 @@ class CRM_Core_Permission_Drupal8 extends CRM_Core_Permission_DrupalBase {
     if ($str == CRM_Core_Permission::ALWAYS_ALLOW_PERMISSION) {
       return TRUE;
     }
-    return \Drupal::currentUser()->hasPermission($str);
+    $acct = $userId ? \Drupal\user\Entity\User::load($userId) : \Drupal::currentUser();
+    return $acct->hasPermission($str);
   }
 
   /**

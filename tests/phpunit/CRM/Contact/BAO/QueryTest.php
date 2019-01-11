@@ -175,7 +175,7 @@ class CRM_Contact_BAO_QueryTest extends CiviUnitTestCase {
         0 => array(
           0 => 'email',
           1 => 'LIKE',
-          2 => 'secondary@example.com',
+          2 => 'sEcondary@example.com',
           3 => 0,
           4 => 1,
         ),
@@ -209,45 +209,108 @@ class CRM_Contact_BAO_QueryTest extends CiviUnitTestCase {
   }
 
   /**
-   * CRM-14263 search builder failure with search profile & address in criteria
+   *  Test created to prove failure of search on state when location
+   *  display name is different form location name (issue 607)
+   */
+  public function testSearchOtherLocationUpperLower() {
+
+    $params = [
+      0 => [
+        0 => 'state_province-4',
+        1 => 'IS NOT EMPTY',
+        2 => '',
+        3 => 1,
+        4 => 0,
+      ],
+    ];
+    $returnProperties = [
+      'contact_type' => 1,
+      'contact_sub_type' => 1,
+      'sort_name' => 1,
+      'location' => [
+        'other' => [
+          'location_type' => 4,
+          'state_province' => 1,
+        ],
+      ],
+    ];
+
+    // update with the api does not work because it updates both the name and the
+    // the display_name. Plain SQL however does the job
+    CRM_Core_DAO::executeQuery('update civicrm_location_type set name=%2 where id=%1',
+      [
+        1 => [4, 'Integer'],
+        2 => ['other', 'String'],
+      ]);
+
+    $queryObj = new CRM_Contact_BAO_Query($params, $returnProperties);
+
+    $resultDAO = $queryObj->searchQuery(0, 0, NULL,
+      FALSE, FALSE,
+      FALSE, FALSE,
+      FALSE);
+    $resultDAO->fetch();
+  }
+
+
+  /**
+   * CRM-14263 search builder failure with search profile & address in criteria.
+   *
    * We are retrieving primary here - checking the actual sql seems super prescriptive - but since the massive query object has
    * so few tests detecting any change seems good here :-)
+   *
+   * @dataProvider getSearchProfileData
+   *
+   * @param array $params
    */
-  public function testSearchProfilePrimaryCityCRM14263() {
+  public function testSearchProfilePrimaryCityCRM14263($params, $selectClause, $whereClause) {
     $contactID = $this->individualCreate();
     CRM_Core_Config::singleton()->defaultSearchProfileID = 1;
     $this->callAPISuccess('address', 'create', array(
         'contact_id' => $contactID,
-        'city' => 'Cool City',
+        'city' => 'Cool CITY',
+        'street_address' => 'Long STREET',
         'location_type_id' => 1,
       ));
-    $params = array(
-      0 => array(
-        0 => 'city',
-        1 => '=',
-        2 => 'Cool City',
-        3 => 1,
-        4 => 0,
-      ),
-    );
     $returnProperties = array(
       'contact_type' => 1,
       'contact_sub_type' => 1,
       'sort_name' => 1,
     );
-    $expectedSQL = "SELECT contact_a.id as contact_id, contact_a.contact_type as `contact_type`, contact_a.contact_sub_type as `contact_sub_type`, contact_a.sort_name as `sort_name`, civicrm_address.id as address_id, civicrm_address.city as `city`  FROM civicrm_contact contact_a LEFT JOIN civicrm_address ON ( contact_a.id = civicrm_address.contact_id AND civicrm_address.is_primary = 1 ) WHERE  (  ( LOWER(civicrm_address.city) = 'cool city' )  )  AND (contact_a.is_deleted = 0)    ORDER BY `contact_a`.`sort_name` ASC, `contact_a`.`id` ";
+    $expectedSQL = "SELECT contact_a.id as contact_id, contact_a.contact_type as `contact_type`, contact_a.contact_sub_type as `contact_sub_type`, contact_a.sort_name as `sort_name`, civicrm_address.id as address_id, " . $selectClause . "  FROM civicrm_contact contact_a LEFT JOIN civicrm_address ON ( contact_a.id = civicrm_address.contact_id AND civicrm_address.is_primary = 1 ) WHERE  (  ( " . $whereClause . " )  )  AND (contact_a.is_deleted = 0)    ORDER BY `contact_a`.`sort_name` ASC, `contact_a`.`id` ";
     $queryObj = new CRM_Contact_BAO_Query($params, $returnProperties);
     try {
       $this->assertEquals($expectedSQL, $queryObj->searchQuery(0, 0, NULL,
         FALSE, FALSE,
         FALSE, FALSE,
         TRUE));
+      list($select, $from, $where, $having) = $queryObj->query();
+      $dao = CRM_Core_DAO::executeQuery("$select $from $where $having");
+      $dao->fetch();
+      $this->assertEquals('Anderson, Anthony', $dao->sort_name);
     }
     catch (PEAR_Exception $e) {
       $err = $e->getCause();
       $this->fail('invalid SQL created' . $e->getMessage() . " " . $err->userinfo);
 
     }
+  }
+
+  /**
+   * Get data sets to test for search.
+   */
+  public function getSearchProfileData() {
+    return [
+      [
+        [['city', '=', 'Cool City', 1, 0]], "civicrm_address.city as `city`", "civicrm_address.city = 'Cool City'",
+      ],
+      [
+        // Note that in the query 'long street' is lower cased. We eventually want to change that & not mess with the vars - it turns out
+        // it doesn't work on some charsets. However, the the lcasing affects more vars & we are looking to stagger removal of lcasing 'in case'
+        // (although we have been removing without blowback since 2017)
+        [['street_address', '=', 'Long Street', 1, 0]], "civicrm_address.street_address as `street_address`", "civicrm_address.street_address LIKE '%Long Street%'",
+      ],
+    ];
   }
 
   /**
@@ -364,7 +427,7 @@ class CRM_Contact_BAO_QueryTest extends CiviUnitTestCase {
     );
 
     $sql = $query->query(FALSE);
-    $this->assertEquals("WHERE  ( civicrm_address.postal_code = 'eh10 4rb-889' )  AND (contact_a.is_deleted = 0)", $sql[2]);
+    $this->assertEquals("WHERE  ( civicrm_address.postal_code = 'EH10 4RB-889' )  AND (contact_a.is_deleted = 0)", $sql[2]);
     $result = CRM_Core_DAO::executeQuery(implode(' ', $sql));
     $this->assertEquals(1, $result->N);
 
@@ -492,11 +555,19 @@ class CRM_Contact_BAO_QueryTest extends CiviUnitTestCase {
     $this->assertContains('INNER JOIN civicrm_rel_temp_', $sql, "Query appears to use temporary table of compiled relationships?", TRUE);
   }
 
+  public function testRelationshipPermissionClause() {
+    $params = [['relation_type_id', 'IN', ['1_b_a'], 0, 0], ['relation_permission', 'IN', [2], 0, 0]];
+    $sql = CRM_Contact_BAO_Query::getQuery($params);
+    $this->assertContains('(civicrm_relationship.is_permission_a_b IN (2))', $sql);
+  }
+
   /**
    * Test Relationship Clause
    */
   public function testRelationshipClause() {
     $today = date('Ymd');
+    $from1 = " FROM civicrm_contact contact_a LEFT JOIN civicrm_relationship ON (civicrm_relationship.contact_id_a = contact_a.id ) LEFT JOIN civicrm_contact contact_b ON (civicrm_relationship.contact_id_b = contact_b.id )";
+    $from2 = " FROM civicrm_contact contact_a LEFT JOIN civicrm_relationship ON (civicrm_relationship.contact_id_b = contact_a.id ) LEFT JOIN civicrm_contact contact_b ON (civicrm_relationship.contact_id_a = contact_b.id )";
     $where1 = "WHERE  ( (
 civicrm_relationship.is_active = 1 AND
 ( civicrm_relationship.end_date IS NULL OR civicrm_relationship.end_date >= {$today} ) AND
@@ -516,6 +587,7 @@ civicrm_relationship.is_active = 1 AND
       TRUE, FALSE
     );
     $sql1 = $query1->query(FALSE);
+    $this->assertEquals($from1, $sql1[1]);
     $this->assertEquals($where1, $sql1[2]);
     // Test single relationship type selected in multiple select.
     $params2 = array(array('relation_type_id', 'IN', array('8_a_b'), 0, 0));
@@ -526,6 +598,7 @@ civicrm_relationship.is_active = 1 AND
       TRUE, FALSE
     );
     $sql2 = $query2->query(FALSE);
+    $this->assertEquals($from1, $sql2[1]);
     $this->assertEquals($where1, $sql2[2]);
     // Test multiple relationship types selected.
     $params3 = array(array('relation_type_id', 'IN', array('8_a_b', '10_a_b'), 0, 0));
@@ -536,6 +609,7 @@ civicrm_relationship.is_active = 1 AND
       TRUE, FALSE
     );
     $sql3 = $query3->query(FALSE);
+    $this->assertEquals($from1, $sql3[1]);
     $this->assertEquals($where2, $sql3[2]);
     // Test Multiple Relationship type selected where one doesn't actually exist.
     $params4 = array(array('relation_type_id', 'IN', array('8_a_b', '10_a_b', '14_a_b'), 0, 0));
@@ -546,7 +620,20 @@ civicrm_relationship.is_active = 1 AND
       TRUE, FALSE
     );
     $sql4 = $query4->query(FALSE);
+    $this->assertEquals($from1, $sql4[1]);
     $this->assertEquals($where2, $sql4[2]);
+
+    // Test Multiple b to a Relationship type  .
+    $params5 = array(array('relation_type_id', 'IN', array('8_b_a', '10_b_a', '14_b_a'), 0, 0));
+    $query5 = new CRM_Contact_BAO_Query(
+      $params5, array('contact_id'),
+      NULL, TRUE, FALSE, 1,
+      TRUE,
+      TRUE, FALSE
+    );
+    $sql5 = $query5->query(FALSE);
+    $this->assertEquals($from2, $sql5[1]);
+    $this->assertEquals($where2, $sql5[2]);
   }
 
   /**

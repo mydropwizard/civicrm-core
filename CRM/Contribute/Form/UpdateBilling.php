@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -95,7 +95,7 @@ class CRM_Contribute_Form_UpdateBilling extends CRM_Core_Form {
       $this->_selfService = TRUE;
     }
 
-    if (!$this->_paymentProcessor['object']->isSupported('updateSubscriptionBillingInfo')) {
+    if (!$this->_paymentProcessor['object']->supports('updateSubscriptionBillingInfo')) {
       CRM_Core_Error::fatal(ts("%1 processor doesn't support updating subscription billing details.",
         array(1 => $this->_paymentProcessor['object']->_processorName)
       ));

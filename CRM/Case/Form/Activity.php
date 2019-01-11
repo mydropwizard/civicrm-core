@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -63,7 +63,7 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
   public function preProcess() {
     $caseIds = CRM_Utils_Request::retrieve('caseid', 'String', $this);
     $this->_caseId = explode(',', $caseIds);
-    $this->_context = CRM_Utils_Request::retrieve('context', 'String', $this);
+    $this->_context = CRM_Utils_Request::retrieve('context', 'Alphanumeric', $this);
     if (!$this->_context) {
       $this->_context = 'caseActivity';
     }
@@ -178,10 +178,9 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
                 $atArray,
                 $this->_currentUserId
               );
-              $activities = array_keys($activities);
-              $activities = $activities[0];
+              $activityId = CRM_Utils_Array::first(array_keys($activities['data']));
               $editUrl = CRM_Utils_System::url('civicrm/case/activity',
-                "reset=1&cid={$this->_currentlyViewedContactId}&caseid={$caseId}&action=update&id={$activities}"
+                "reset=1&cid={$this->_currentlyViewedContactId}&caseid={$caseId}&action=update&id={$activityId}"
               );
             }
             CRM_Core_Error::statusBounce(ts("You can not add another '%1' activity to this case. %2",
@@ -273,17 +272,14 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
     $this->assign('urlPath', 'civicrm/case/activity');
 
     $encounterMediums = CRM_Case_PseudoConstant::encounterMedium();
-    // Fixme: what's the justification for this? It seems like it is just re-adding an option in case it is the default and disabled.
-    // Is that really a big problem?
-    if ($this->_activityTypeFile == 'OpenCase') {
-      $this->_encounterMedium = CRM_Core_DAO::getFieldValue('CRM_Activity_DAO_Activity', $this->_activityId,
-        'medium_id'
-      );
+    if ($this->_activityTypeFile == 'OpenCase' && $this->_action == CRM_Core_Action::UPDATE) {
+      $this->getElement('activity_date_time')->freeze();
+
+      // Fixme: what's the justification for this? It seems like it is just re-adding an option in case it is the default and disabled.
+      // Is that really a big problem?
+      $this->_encounterMedium = CRM_Core_DAO::getFieldValue('CRM_Activity_DAO_Activity', $this->_activityId, 'medium_id');
       if (!array_key_exists($this->_encounterMedium, $encounterMediums)) {
-        $encounterMediums[$this->_encounterMedium] = CRM_Core_OptionGroup::getLabel('encounter_medium',
-          $this->_encounterMedium,
-          FALSE
-        );
+        $encounterMediums[$this->_encounterMedium] = CRM_Core_OptionGroup::getLabel('encounter_medium', $this->_encounterMedium, FALSE);
       }
     }
 
@@ -405,8 +401,6 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
       $params['parent_id'] = $parentId;
     }
 
-    // store the dates with proper format
-    $params['activity_date_time'] = CRM_Utils_Date::processDate($params['activity_date_time'], $params['activity_date_time_time']);
     $params['activity_type_id'] = $this->_activityTypeId;
 
     // format with contact (target contact) values
@@ -534,7 +528,7 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
       }
       // copy files attached to old activity if any, to new one,
       // as long as users have not selected the 'delete attachment' option.
-      if (empty($newActParams['is_delete_attachment'])) {
+      if (empty($newActParams['is_delete_attachment']) && ($this->_activityId != $activity->id)) {
         CRM_Core_BAO_File::copyEntityFile('civicrm_activity', $this->_activityId,
           'civicrm_activity', $activity->id
         );

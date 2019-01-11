@@ -3,7 +3,7 @@
   +--------------------------------------------------------------------+
   | CiviCRM version 5                                                  |
   +--------------------------------------------------------------------+
-  | Copyright CiviCRM LLC (c) 2004-2018                                |
+  | Copyright CiviCRM LLC (c) 2004-2019                                |
   +--------------------------------------------------------------------+
   | This file is a part of CiviCRM.                                    |
   |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -302,6 +302,15 @@ class CRM_Contribute_Form_Contribution_Main extends CRM_Contribute_Form_Contribu
       $this->buildComponentForm($this->_id, $this);
     }
 
+    if (count($this->_paymentProcessors) >= 1 && !isset($this->_paymentProcessors[0]) && !$this->get_template_vars("isCaptcha") && $this->hasToAddForcefully()) {
+      if (!$this->_userID) {
+        $this->enableCaptchaOnForm();
+      }
+      else {
+        $this->displayCaptchaWarning();
+      }
+    }
+
     // Build payment processor form
     CRM_Core_Payment_ProcessorForm::buildQuickForm($this);
 
@@ -554,7 +563,7 @@ class CRM_Contribute_Form_Contribution_Main extends CRM_Contribute_Form_Contribu
     $form->add('checkbox', 'is_recur', ts('I want to contribute this amount'), NULL);
 
     if (!empty($form->_values['is_recur_interval']) || $className == 'CRM_Contribute_Form_Contribution') {
-      $form->add('text', 'frequency_interval', ts('Every'), $attributes['frequency_interval']);
+      $form->add('text', 'frequency_interval', ts('Every'), $attributes['frequency_interval'] + ['aria-label' => ts('Every')]);
       $form->addRule('frequency_interval', ts('Frequency must be a whole number (EXAMPLE: Every 3 months).'), 'integer');
     }
     else {
@@ -595,7 +604,7 @@ class CRM_Contribute_Form_Contribution_Main extends CRM_Contribute_Form_Contribu
           }
         }
       }
-      $frequencyUnit = &$form->add('select', 'frequency_unit', NULL, $units);
+      $frequencyUnit = &$form->addElement('select', 'frequency_unit', NULL, $units, ['aria-label' => ts('Frequency Unit')]);
     }
 
     // FIXME: Ideally we should freeze select box if there is only
@@ -617,7 +626,7 @@ class CRM_Contribute_Form_Contribution_Main extends CRM_Contribute_Form_Contribu
    *   The input form values.
    * @param array $files
    *   The uploaded files if any.
-   * @param CRM_Core_Form $self
+   * @param \CRM_Contribute_Form_Contribution_Main $self
    *
    * @return bool|array
    *   true if no errors, else array of errors
@@ -661,7 +670,7 @@ class CRM_Contribute_Form_Contribution_Main extends CRM_Contribute_Form_Contribu
       $previousId = $otherAmount = FALSE;
       while ($priceField->fetch()) {
 
-        if ($self->_quickConfig && ($priceField->name == 'contribution_amount' || $priceField->name == 'membership_amount')) {
+        if ($self->isQuickConfig() && ($priceField->name == 'contribution_amount' || $priceField->name == 'membership_amount')) {
           $previousId = $priceField->id;
           if ($priceField->name == 'membership_amount' && !$priceField->is_active) {
             $membershipIsActive = FALSE;
@@ -942,7 +951,7 @@ class CRM_Contribute_Form_Contribution_Main extends CRM_Contribute_Form_Contribu
       return $errors;
     }
 
-    if (CRM_Utils_Array::value('payment_processor_id', $fields) == NULL) {
+    if (CRM_Utils_Array::value('payment_processor_id', $fields) === NULL) {
       $errors['payment_processor_id'] = ts('Payment Method is a required field.');
     }
     else {
@@ -1300,14 +1309,17 @@ class CRM_Contribute_Form_Contribution_Main extends CRM_Contribute_Form_Contribu
     if (empty($this->_ccid)) {
       return;
     }
+    if (!$this->getContactID()) {
+      CRM_Core_Error::statusBounce(ts("Returning since there is no contact attached to this contribution id."));
+    }
 
-    $payment = CRM_Contribute_BAO_Contribution::getPaymentInfo($this->_ccid, 'contribution');
+    $paymentBalance = CRM_Contribute_BAO_Contribution::getContributionBalance($this->_ccid);
     //bounce if the contribution is not pending.
-    if (empty($payment['balance'])) {
+    if ((int) $paymentBalance <= 0) {
       CRM_Core_Error::statusBounce(ts("Returning since contribution has already been handled."));
     }
-    if (!empty($payment['total'])) {
-      $this->_pendingAmount = $payment['total'];
+    if (!empty($paymentBalance)) {
+      $this->_pendingAmount = $paymentBalance;
       $this->assign('pendingAmount', $this->_pendingAmount);
     }
 

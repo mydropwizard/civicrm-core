@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -27,7 +27,7 @@
 
 /**
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  *
  */
 
@@ -117,7 +117,7 @@ class CRM_Event_Task extends CRM_Core_Task {
           'class' => 'CRM_Event_Form_Task_Badge',
           'result' => FALSE,
         ),
-        self::TASK_PRINT => array(
+        self::PDF_LETTER => array(
           'title' => ts('PDF letter - print for participants'),
           'class' => 'CRM_Event_Form_Task_PDF',
           'result' => TRUE,

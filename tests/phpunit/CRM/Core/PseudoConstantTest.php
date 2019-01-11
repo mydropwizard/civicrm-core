@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -912,7 +912,7 @@ class CRM_Core_PseudoConstantTest extends CiviUnitTestCase {
           'sample' => $campaign_name,
         ),
       ),
-      'CRM_Mailing_DAO_Component' => array(
+      'CRM_Mailing_DAO_MailingComponent' => array(
         array(
           'fieldName' => 'component_type',
           'sample' => 'Header',

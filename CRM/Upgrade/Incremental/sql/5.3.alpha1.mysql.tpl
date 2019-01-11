@@ -11,5 +11,8 @@ UPDATE civicrm_custom_field SET is_searchable = 0 WHERE is_required IS NULL;
 ALTER TABLE civicrm_custom_field ALTER column is_active SET DEFAULT 1;
 
 SET @UKCountryId = (SELECT id FROM civicrm_country cc WHERE cc.name = 'United Kingdom');
-INSERT INTO civicrm_state_province (country_id, abbreviation, name)
+INSERT IGNORE INTO civicrm_state_province (country_id, abbreviation, name)
 VALUES (@UKCountryId, 'MON', 'Monmouthshire');
+
+{* dev/core/#152 *}
+UPDATE `civicrm_custom_field` set `html_type` = "Multi-Select" WHERE `html_type` = "AdvMulti-Select";

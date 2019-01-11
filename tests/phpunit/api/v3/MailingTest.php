@@ -356,7 +356,7 @@ class api_v3_MailingTest extends CiviUnitTestCase {
     ));
     $this->callAPISuccess('Email', 'create', array(
       'id' => $emailId,
-      'on_hold' => TRUE,
+      'on_hold' => 1,
     ));
 
     $this->callAPISuccess('GroupContact', 'create', array(
@@ -398,7 +398,7 @@ class api_v3_MailingTest extends CiviUnitTestCase {
   }
 
   /**
-   *
+   * Test sending a test mailing.
    */
   public function testMailerSendTest_email() {
     $contactIDs['alice'] = $this->individualCreate(array(
@@ -409,9 +409,12 @@ class api_v3_MailingTest extends CiviUnitTestCase {
 
     $mail = $this->callAPISuccess('mailing', 'create', $this->_params);
 
-    $params = array('mailing_id' => $mail['id'], 'test_email' => 'alice@example.org', 'test_group' => NULL);
+    $params = array('mailing_id' => $mail['id'], 'test_email' => 'ALicE@example.org', 'test_group' => NULL);
+    // Per https://lab.civicrm.org/dev/core/issues/229 ensure this is not passed through!
+    // Per https://lab.civicrm.org/dev/mail/issues/32 test non-lowercase email
+    $params['id'] = $mail['id'];
     $deliveredInfo = $this->callAPISuccess($this->_entity, 'send_test', $params);
-    $this->assertEquals(1, $deliveredInfo['count'], "in line " . __LINE__); // verify mail has been sent to user by count
+    $this->assertEquals(1, $deliveredInfo['count']); // verify mail has been sent to user by count
 
     $deliveredContacts = array_values(CRM_Utils_Array::collect('contact_id', $deliveredInfo['values']));
     $this->assertEquals(array($contactIDs['alice']), $deliveredContacts);
@@ -737,6 +740,7 @@ SELECT event_queue_id, time_stamp FROM mail_{$type}_temp";
     // END SAMPLE DATA
 
     $create = $this->callAPISuccess('Mailing', 'create', $params);
+    $created = $this->callAPISuccess('Mailing', 'get', []);
     $createId = $create['id'];
     $this->createLoggedInUser();
     $clone = $this->callAPIAndDocument('Mailing', 'clone', array('id' => $create['id']), __FUNCTION__, __FILE__);

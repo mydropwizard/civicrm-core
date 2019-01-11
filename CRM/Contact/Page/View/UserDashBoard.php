@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -69,10 +69,18 @@ class CRM_Contact_Page_View_UserDashBoard extends CRM_Core_Page {
     $session = CRM_Core_Session::singleton();
     $userID = $session->get('userID');
 
+    $userChecksum = $this->getUserChecksum();
+    $validUser = FALSE;
+    if ($userChecksum) {
+      $this->assign('userChecksum', $userChecksum);
+      $validUser = CRM_Contact_BAO_Contact_Utils::validChecksum($this->_contactId, $userChecksum);
+      $this->_isChecksumUser = $validUser;
+    }
+
     if (!$this->_contactId) {
       $this->_contactId = $userID;
     }
-    elseif ($this->_contactId != $userID) {
+    elseif ($this->_contactId != $userID && !$validUser) {
       if (!CRM_Contact_BAO_Contact_Permission::allow($this->_contactId, CRM_Core_Permission::VIEW)) {
         CRM_Core_Error::fatal(ts('You do not have permission to access this contact.'));
       }
@@ -162,7 +170,7 @@ class CRM_Contact_Page_View_UserDashBoard extends CRM_Core_Page {
       $this->assign('pcpInfo', $pcpInfo);
     }
 
-    if (!empty($this->_userOptions['Assigned Activities'])) {
+    if (!empty($this->_userOptions['Assigned Activities']) && empty($this->_isChecksumUser)) {
       // Assigned Activities section
       $dashboardElements[] = array(
         'class' => 'crm-dashboard-assignedActivities',
@@ -215,19 +223,19 @@ class CRM_Contact_Page_View_UserDashBoard extends CRM_Core_Page {
           'name' => ts('Edit Contact Information'),
           'url' => 'civicrm/contact/relatedcontact',
           'qs' => 'action=update&reset=1&cid=%%cbid%%&rcid=%%cid%%',
-          'title' => ts('Edit Relationship'),
+          'title' => ts('Edit Contact Information'),
         ),
         CRM_Core_Action::VIEW => array(
           'name' => ts('Dashboard'),
           'url' => 'civicrm/user',
           'class' => 'no-popup',
           'qs' => 'reset=1&id=%%cbid%%',
-          'title' => ts('View Relationship'),
+          'title' => ts('View Contact Dashboard'),
         ),
       );
 
       if (CRM_Core_Permission::check('access CiviCRM')) {
-        self::$_links = array_merge(self::$_links, array(
+        self::$_links += array(
           CRM_Core_Action::DISABLE => array(
             'name' => ts('Disable'),
             'url' => 'civicrm/contact/view/rel',
@@ -235,7 +243,7 @@ class CRM_Contact_Page_View_UserDashBoard extends CRM_Core_Page {
             'extra' => 'onclick = "return confirm(\'' . $disableExtra . '\');"',
             'title' => ts('Disable Relationship'),
           ),
-        ));
+        );
       }
     }
 
@@ -246,6 +254,19 @@ class CRM_Contact_Page_View_UserDashBoard extends CRM_Core_Page {
       self::$_links
     );
     return self::$_links;
+  }
+
+  /**
+   * Get the user checksum from the url to use in links.
+   *
+   * @return string
+   */
+  protected function getUserChecksum() {
+    $userChecksum = CRM_Utils_Request::retrieve('cs', 'String', $this);
+    if (empty($userID) && $this->_contactId) {
+      return $userChecksum;
+    }
+    return FALSE;
   }
 
 }

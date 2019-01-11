@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 class CRM_Contribute_BAO_Contribution_Utils {
 
@@ -74,6 +74,8 @@ class CRM_Contribute_BAO_Contribution_Utils {
 
     // add some financial type details to the params list
     // if folks need to use it
+    //CRM-15297 deprecate contributionTypeID
+    $paymentParams['financial_type_id'] = $paymentParams['financialTypeID'] = $paymentParams['contributionTypeID'] = $financialType->id;
     //CRM-15297 - contributionType is obsolete - pass financial type as well so people can deprecate it
     $paymentParams['financialType_name'] = $paymentParams['contributionType_name'] = $form->_params['contributionType_name'] = $financialType->name;
     //CRM-11456
@@ -154,8 +156,6 @@ class CRM_Contribute_BAO_Contribution_Utils {
       }
 
       $paymentParams['contributionID'] = $contribution->id;
-      //CRM-15297 deprecate contributionTypeID
-      $paymentParams['financialTypeID'] = $paymentParams['contributionTypeID'] = $contribution->financial_type_id;
       $paymentParams['contributionPageID'] = $contribution->contribution_page_id;
       if (isset($paymentParams['contribution_source'])) {
         $paymentParams['source'] = $paymentParams['contribution_source'];
@@ -244,6 +244,7 @@ class CRM_Contribute_BAO_Contribution_Utils {
 
   /**
    * Is a payment being made.
+   *
    * Note that setting is_monetary on the form is somewhat legacy and the behaviour around this setting is confusing. It would be preferable
    * to look for the amount only (assuming this cannot refer to payment in goats or other non-monetary currency
    * @param CRM_Core_Form $form

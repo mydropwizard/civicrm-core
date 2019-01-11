@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -89,6 +89,24 @@ class CRM_Core_OptionGroupTest extends CiviUnitTestCase {
     else {
       $this->assertEquals($dataType, $expectedDataType);
     }
+  }
+
+
+  public function emailAddressTests() {
+    $tests[] = array('"Name"<email@example.com>', '"Name" <email@example.com>');
+    $tests[] = array('"Name" <email@example.com>', '"Name" <email@example.com>');
+    $tests[] = array('"Name"  <email@example.com>', '"Name" <email@example.com>');
+    return $tests;
+  }
+
+
+  /**
+   * @dataProvider emailAddressTests
+   */
+  public function testSanitizeFromEmailAddress($dirty, $clean) {
+    $form = new CRM_Admin_Form_Options();
+    $actual = $form->sanitizeFromEmailAddress($dirty);
+    $this->assertEquals($actual, $clean);
   }
 
 }

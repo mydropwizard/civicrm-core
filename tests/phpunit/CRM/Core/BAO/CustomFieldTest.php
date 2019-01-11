@@ -6,19 +6,14 @@
  */
 class CRM_Core_BAO_CustomFieldTest extends CiviUnitTestCase {
 
+  protected $customFieldID;
+
   public function setUp() {
     parent::setUp();
   }
 
   public function testCreateCustomField() {
-    $customGroup = $this->customGroupCreate(array('extends' => 'Individual'));
-    $fields = array(
-      'label' => 'testFld',
-      'data_type' => 'String',
-      'html_type' => 'Text',
-      'custom_group_id' => $customGroup['id'],
-    );
-    CRM_Core_BAO_CustomField::create($fields);
+    $customGroup = $this->createCustomField();
     $customFieldID = $this->assertDBNotNull('CRM_Core_DAO_CustomField', $customGroup['id'], 'id', 'custom_group_id',
       'Database check for created CustomField.'
     );
@@ -184,6 +179,26 @@ class CRM_Core_BAO_CustomFieldTest extends CiviUnitTestCase {
     $this->customGroupDelete($customGroup['id']);
   }
 
+  public function testGetDisplayedValuesContactRef() {
+    $customGroup = $this->customGroupCreate(['extends' => 'Individual']);
+    $params = [
+      'data_type' => 'ContactReference',
+      'html_type' => 'Autocomplete-Select',
+      'label' => 'test ref',
+      'custom_group_id' => $customGroup['id'],
+    ];
+    $createdField = $this->callAPISuccess('customField', 'create', $params);
+    $contact1 = $this->individualCreate();
+    $contact2 = $this->individualCreate(['custom_' . $createdField['id'] => $contact1['id']]);
+
+    $this->assertEquals($contact1['display_name'], CRM_Core_BAO_CustomField::displayValue($contact2['id'], $createdField['id']));
+    $this->assertEquals("Bob", CRM_Core_BAO_CustomField::displayValue("Bob", $createdField['id']));
+
+    $this->contactDelete($contact2['id']);
+    $this->contactDelete($contact1['id']);
+    $this->customGroupDelete($customGroup['id']);
+  }
+
   public function testDeleteCustomField() {
     $customGroup = $this->customGroupCreate(array('extends' => 'Individual'));
     $fields = array(
@@ -334,6 +349,34 @@ class CRM_Core_BAO_CustomFieldTest extends CiviUnitTestCase {
 
     $this->customGroupDelete($groups['A']['id']);
     $this->customGroupDelete($groupB['id']);
+  }
+
+  /**
+   * Test get custom field id function.
+   */
+  public function testGetCustomFieldID() {
+    $this->createCustomField();
+    $fieldID = CRM_Core_BAO_CustomField::getCustomFieldID('testFld');
+    $this->assertEquals($this->customFieldID, $fieldID);
+
+    $fieldID = CRM_Core_BAO_CustomField::getCustomFieldID('testFld', 'new custom group');
+    $this->assertEquals($this->customFieldID, $fieldID);
+  }
+
+  /**
+   * @return array
+   */
+  protected function createCustomField() {
+    $customGroup = $this->customGroupCreate(array('extends' => 'Individual'));
+    $fields = array(
+      'label' => 'testFld',
+      'data_type' => 'String',
+      'html_type' => 'Text',
+      'custom_group_id' => $customGroup['id'],
+    );
+    $field = CRM_Core_BAO_CustomField::create($fields);
+    $this->customFieldID = $field->id;
+    return $customGroup;
   }
 
 }

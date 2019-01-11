@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -31,7 +31,7 @@
  * @package CiviCRM_APIv3
  * @subpackage API_Job
  *
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 
 /**
@@ -207,7 +207,7 @@ abstract class CRM_Mailing_BaseMailingSystemTest extends CiviUnitTestCase {
       $this->assertRegExp(
         ";" .
         // body_html
-        "<p>You can go to <a href=['\"].*extern/url\.php\?u=\d+&amp\\;qid=\d+['\"]>Google</a>" .
+        "<p>You can go to <a href=['\"].*extern/url\.php\?u=\d+&amp\\;qid=\d+['\"] rel='nofollow'>Google</a>" .
         " or <a href=\"http.*civicrm/mailing/optout.*\">opt out</a>.</p>\n" .
         // Default footer
         "Sample Footer for HTML formatted content" .

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  * $Id$
  *
  */
@@ -166,7 +166,7 @@ class CRM_Member_Form_MembershipView extends CRM_Core_Form {
     $this->contactID = CRM_Utils_Request::retrieve('cid', 'Positive', $this);
 
     // Make sure context is assigned to template for condition where we come here view civicrm/membership/view
-    $context = CRM_Utils_Request::retrieve('context', 'String', $this);
+    $context = CRM_Utils_Request::retrieve('context', 'Alphanumeric', $this);
     $this->assign('context', $context);
 
     if ($this->membershipID) {
@@ -255,8 +255,7 @@ END AS 'relType'
         $relTypeId = explode(CRM_Core_DAO::VALUE_SEPARATOR, $membershipType['relationship_type_id']);
         $relDirection = explode(CRM_Core_DAO::VALUE_SEPARATOR, $membershipType['relationship_direction']);
         foreach ($relTypeId as $rid) {
-          $dir = each($relDirection);
-          $relTypeDir[substr($dir['value'], 0, 1)][] = $rid;
+          $relTypeDir[substr($relDirection[0], 0, 1)][] = $rid;
         }
         // build query in 2 parts with a UNION if necessary
         // _x and _y are replaced with _a and _b first, then vice-versa

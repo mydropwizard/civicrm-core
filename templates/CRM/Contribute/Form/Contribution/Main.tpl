@@ -2,7 +2,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -64,6 +64,12 @@
 
   {if $action & 1024}
   {include file="CRM/Contribute/Form/Contribution/PreviewHeader.tpl"}
+  {/if}
+
+  {if $displayCaptchaWarning}
+  <div class="messages status no-popup">
+      {ts}To display reCAPTCHA on form you must get an API key from<br /> <a href='https://www.google.com/recaptcha/admin/create'>https://www.google.com/recaptcha/admin/create</a>{/ts}
+  </div>
   {/if}
 
   {include file="CRM/common/TrackingFields.tpl"}
@@ -198,7 +204,7 @@
       {include file="CRM/Contribute/Form/Contribution/PremiumBlock.tpl" context="makeContribution"}
     </div>
 
-    {if $honoreeProfileFields|@count}
+    {if $honoreeProfileFields && $honoreeProfileFields|@count}
       <fieldset class="crm-public-form-item crm-group honor_block-group">
         {crmRegion name="contribution-soft-credit-block"}
           <legend>{$honor_block_title}</legend>

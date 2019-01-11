@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  * $Id$
  *
  */
@@ -45,14 +45,21 @@ class CRM_Friend_Form extends CRM_Core_Form {
   const NUM_OPTION = 3;
 
   /**
-   * The id of the entity that we are proceessing.
+   * The id of the entity that we are processing.
    *
    * @var int
    */
   protected $_entityId;
 
   /**
-   * The table name of the entity that we are proceessing.
+   * Tell a friend id in db.
+   *
+   * @var int
+   */
+  public $_friendId;
+
+  /**
+   * The table name of the entity that we are processing.
    *
    * @var string
    */
@@ -88,6 +95,7 @@ class CRM_Friend_Form extends CRM_Core_Form {
       if ($pcomponent == 'event') {
         $this->_entityTable = 'civicrm_event';
         $isShare = CRM_Core_DAO::getFieldValue('CRM_Event_DAO_Event', $this->_entityId, 'is_share');
+        $this->_title = CRM_Core_DAO::getFieldValue('CRM_Event_DAO_Event', $this->_entityId, 'title');
       }
       else {
         $isShare = CRM_Utils_Array::value('is_share', $values);

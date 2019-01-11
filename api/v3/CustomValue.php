@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2017                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -145,22 +145,30 @@ function civicrm_api3_custom_value_get($params) {
   unset($params['entity_id'], $params['entity_table']);
   foreach ($params as $id => $param) {
     if ($param && substr($id, 0, 6) == 'return') {
-      $id = substr($id, 7);
-      list($c, $i) = CRM_Utils_System::explode('_', $id, 2);
-      if ($c == 'custom' && is_numeric($i)) {
-        $names['custom_' . $i] = 'custom_' . $i;
-        $id = $i;
+      $returnVal = $param;
+      if (!empty(substr($id, 7))) {
+        $returnVal = substr($id, 7);
       }
-      else {
-        // Lookup names if ID was not supplied
-        list($group, $field) = CRM_Utils_System::explode(':', $id, 2);
-        $id = CRM_Core_BAO_CustomField::getCustomFieldID($field, $group);
-        if (!$id) {
-          continue;
+      if (!is_array($returnVal)) {
+        $returnVal = explode(',', $returnVal);
+      }
+      foreach ($returnVal as $value) {
+        list($c, $i) = CRM_Utils_System::explode('_', $value, 2);
+        if ($c == 'custom' && is_numeric($i)) {
+          $names['custom_' . $i] = 'custom_' . $i;
+          $fldId = $i;
         }
-        $names['custom_' . $id] = 'custom_' . $i;
+        else {
+          // Lookup names if ID was not supplied
+          list($group, $field) = CRM_Utils_System::explode(':', $value, 2);
+          $fldId = CRM_Core_BAO_CustomField::getCustomFieldID($field, $group);
+          if (!$fldId) {
+            continue;
+          }
+          $names['custom_' . $fldId] = 'custom_' . $i;
+        }
+        $getParams['custom_' . $fldId] = 1;
       }
-      $getParams['custom_' . $id] = 1;
     }
   }
 
@@ -238,7 +246,8 @@ function _civicrm_api3_custom_value_get_spec(&$params) {
  * CustomValue.gettree API specification
  *
  * @param array $spec description of fields supported by this API call
- * @return void
+ *
+ * @throws \CiviCRM_API3_Exception
  */
 function _civicrm_api3_custom_value_gettree_spec(&$spec) {
   $spec['entity_id'] = array(
@@ -286,8 +295,11 @@ function _civicrm_api3_custom_value_gettree_spec(&$spec) {
  * CustomValue.gettree API
  *
  * @param array $params
+ *
  * @return array API result
- * @throws API_Exception
+ * @throws \API_Exception
+ * @throws \CRM_Core_Exception
+ * @throws \CiviCRM_API3_Exception
  */
 function civicrm_api3_custom_value_gettree($params) {
   $ret = array();
@@ -336,6 +348,7 @@ function civicrm_api3_custom_value_gettree($params) {
   if ($ret || !empty($params['check_permissions'])) {
     $entityData = civicrm_api3($params['entity_type'], 'getsingle', array(
       'id' => $params['entity_id'],
+      'check_permissions' => !empty($params['check_permissions']),
       'return' => array_merge(array('id'), array_values($ret)),
     ));
     foreach ($ret as $param => $key) {

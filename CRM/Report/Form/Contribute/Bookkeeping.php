@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  */
 class CRM_Report_Form_Contribute_Bookkeeping extends CRM_Report_Form {
 
@@ -211,7 +211,7 @@ class CRM_Report_Form_Contribute_Bookkeeping extends CRM_Report_Form {
             'title' => ts('Financial Account Owner - Debit'),
             'operatorType' => CRM_Report_Form::OP_SELECT,
             'type' => CRM_Utils_Type::T_INT,
-            'options' => array('' => '- Select Organization -') + CRM_Financial_BAO_FinancialAccount::getOrganizationNames(),
+            'options' => array('' => '- Select Organization -') + CRM_Financial_BAO_FinancialAccount::getOrganizationNames(FALSE),
             'name' => 'contact_id',
             'alias' => 'financial_account_civireport_debit',
           ),
@@ -227,7 +227,7 @@ class CRM_Report_Form_Contribute_Bookkeeping extends CRM_Report_Form {
             'title' => ts('Financial Account Owner - Credit'),
             'operatorType' => CRM_Report_Form::OP_SELECT,
             'type' => CRM_Utils_Type::T_INT,
-            'options' => array('' => '- Select Organization -') + CRM_Financial_BAO_FinancialAccount::getOrganizationNames(),
+            'options' => array('' => '- Select Organization -') + CRM_Financial_BAO_FinancialAccount::getOrganizationNames(FALSE),
             'name' => 'contact_id',
             'alias' => 'financial_account_civireport_credit',
           ),
@@ -301,6 +301,10 @@ class CRM_Report_Form_Contribute_Bookkeeping extends CRM_Report_Form {
             'title' => ts('Contribution Status'),
             'default' => TRUE,
           ),
+          'contribution_source' => array(
+            'title' => ts('Source'),
+            'name' => 'source',
+          ),
           'id' => array(
             'title' => ts('Contribution ID'),
             'default' => TRUE,
@@ -314,6 +318,11 @@ class CRM_Report_Form_Contribute_Bookkeeping extends CRM_Report_Form {
             'type' => CRM_Utils_Type::T_INT,
           ),
           'receive_date' => array('operatorType' => CRM_Report_Form::OP_DATE),
+          'contribution_source' => array(
+            'title' => ts('Source'),
+            'name' => 'source',
+            'type' => CRM_Utils_Type::T_STRING,
+          ),
           'contribution_status_id' => array(
             'title' => ts('Contribution Status'),
             'operatorType' => CRM_Report_Form::OP_MULTISELECT,

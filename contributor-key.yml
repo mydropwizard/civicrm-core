@@ -6,6 +6,9 @@
   organization: Blackfly Solutions
   jira        : adixon
 
+- name        : Alexander Ferreras
+  jira        : aferreras
+
 - github      : agh1
   name        : Andrew Hunt
   organization: AGH Strategies
@@ -82,6 +85,10 @@
   organization: Circle Interactive
   jira        : andyw
 
+- github      : aniesshsethh
+  name        : Aniessh Sethh
+  jira        : aniesshsethh
+
 - name        : Anna Kovalova
   organization: CompuCorp
   jira        : anna
@@ -93,6 +100,8 @@
   name        : Anthony Lindsay
   organization: Annertech
   jira        : anthonylindsay
+
+- github      : applicado
 
 - github      : arborrow
   name        : Anthony Borrow
@@ -139,6 +148,11 @@
 - name        : Matthias Bärnthaler
   jira        : baerm
 
+- github      : baernm
+
+- github      : bastienho
+  name        : Bastien Ho
+
 - github      : bhahumanists
   name        : Andrew West
   organization: British Humanist Association
@@ -146,6 +160,9 @@
 
 - name        : Ben Jarlett
   jira        : benjarlett
+
+- github      : bmango
+  name        : Ben Mango
 
 - github      : BorislavZlatanov
   name        : Borislav Zlatanov
@@ -163,6 +180,10 @@
   name        : Bob Silvern
   jira        : bobs0
 
+- github      : calbasi
+  name        : Joan Cervan Andreu
+  organization: calbasi.net
+
 - name        : Cath O'Connell
   jira        : cath
 
@@ -170,6 +191,13 @@
   name        : Charlie Wilder
   organization: Monadnock Developmental Services
   jira        : chagrawil
+
+- github      : chamilwijesooriya
+  name        : Chamil Wijesooriya
+  organization: MillerTech
+
+- name        : Chandana Bandara
+  jira        : chandana
 
 - name        : Charles Register
   organization: Hemophilia of North Carolina
@@ -188,6 +216,9 @@
 
 - name        : Christophe Golle
   jira        : christophe.golle@gmail.com
+
+- github      : marsh-circle
+  name        : Clare Marsh
 
 - github      : clnlf
   name        : Carlos Loeza
@@ -261,6 +292,10 @@
   organization: Glick Software
   jira        : davisagli
 
+- github      : deb1990
+  name        : Debarshi Bhaumik
+  organization: CompuCorp
+
 - github      : deepak-srivastava
   name        : Deepak Srivastava
   jira        : deepak
@@ -273,6 +308,9 @@
 - github      : demeritcowboy
   name        : Dave D
   jira        : demeritcowboy
+
+- github      : dereklewis123
+  name        : Derek Lewis
 
 - github      : detsieber
   name        : Detlev Sieber
@@ -318,6 +356,10 @@
 - name        : Dina London
   organization: Jvillage Network
   jira        : dinalondon
+
+- name        : Lizz Trudeau
+  organization: Drupal Association
+  jira        : drupal_lizz
 
 - github      : dsnopek
   name        : David Snopek
@@ -455,6 +497,14 @@
   name        : Michael Z Daryabeygi
   organization: Ginkgo Street Labs
 
+- github      : giovannidalmas1967
+  name        : Giovanni Dalmas
+
+- github      : jmcheung
+  name        : Jon-Man Cheung
+  organization: GMCVO Databases
+  Jira        : gmcvo
+
 - name        : Graham Smith
   organization: Edinburgh College
   jira        : grahamsmith
@@ -487,6 +537,10 @@
   organization: CiviHosting
   jira        : hershel
 
+- name        : Paul Butler
+  organization: Hudson-Essex-Terraplane Club
+  jira        : hetclub
+
 - github      : sunnycs121
   name        : Hassan Farooq
   organization: BackOffice Thinking
@@ -499,6 +553,9 @@
 - name        : Holly Hanks
   organization: AGH Strategies
   jira        : hollyhanks
+
+- name        : Hugo do Carmo
+  jira        : hugo.carmo
 
 - name        : Anthony Colombo
   organization: DreamSpace
@@ -556,6 +613,10 @@
 - name        : Jane Hanley
   organization: AGH Strategies
   jira        : jehanley
+
+- github      : jensschuppe
+  name        : Jens Schuppe
+  jira        : jensschuppe
 
 - github      : jernic
   name        : jernic
@@ -658,7 +719,8 @@
 - github      : kerasai
   name        : Will Long
 
-- name        : Kirk Jackson
+- github      : kirk-jackson
+  name        : Kirk Jackson
   organization: Campaign Against Arms Trade
   jira        : kirk
 
@@ -707,7 +769,8 @@
   organization: Web Access
   jira        : kurund
 
-- name        : Lars Sanders-Green
+- github      : larssg-wildsight
+  name        : Lars Sanders-Green
   organization: Wildsight
   jira        : larssg
 
@@ -715,6 +778,10 @@
   name        : Laryn Kragt Bakker
   organization: CEDC
   jira        : lpkb
+
+- github      : laurynnlowe
+  name        : Laurynn Lowe
+  jira        : laurynnlowe
 
 - github      : lcdservices
   name        : Brian Shaughnessy
@@ -763,6 +830,10 @@
   organization: Oxfam Germany
   jira        : liyana
 
+- github      : madhavimalgaonkar
+  name        : Madhavi Malgaonkar
+  organization: OSSeed Technologies
+
 - name        : Madura Krishnamoorthy
   organization: CompuCorp
   jira        : madura
@@ -778,6 +849,8 @@
 
 - name        : Manish Zope
   jira        : manish
+
+- github      : marsh-circle
 
 - name        : Martin Castle
   organization: Circle Interactive
@@ -799,6 +872,9 @@
 - name        : Maureen Parks
   organization: Minnesota Association of Veterinary Technicians
   jira        : membership
+
+- github      : mecachisenros
+  name        : Andrei Mondoc
 
 - github      : mepps
   name        : Maggie Epps
@@ -865,13 +941,22 @@
   organization: Coop SymbioTIC
   jira        : mlutfy
 
-- name        : Michal Mach
+- github      : michau
+  name        : Michal Mach
+  organization: Caltha
   jira        : mover
+
+- github      : MikeyMJCO
+  name        : Mikey O'Toole
+  organization: MJCO
+  jira        : MikeyMJCO
 
 - github      : mmauroy
   name        : Matthias de Mauroy
   organization: CYIM
   jira        : mmauroy
+
+- github      : mmyriam
 
 - github      : mohamedziada
   name        : Mohamed Ziada
@@ -986,6 +1071,9 @@
   organization: Redfin Solutions
   jira        : pcorbett
 
+- name        : Paul Barmak
+  jira        : pbarmak
+
 - github      : pbatroff
   name        : Philipp Batroff
   organization: Systopia
@@ -1035,6 +1123,9 @@
 - name        : Rareș Pamfil
   jira        : rares
 
+- github      : ray-wright
+  name        : Ray Wright
+
 - name        : Renaee Churches
   organization: Play Australia
   jira        : Renz56c.o
@@ -1058,6 +1149,9 @@
   name        : Rob Brandt
   organization: Botanical Society of America
   jira        : robbrandt
+
+- github      : robfenwickuk
+  name        : Robin Fenwick
 
 - name        : Robert Lang
   jira        : rjlang
@@ -1116,7 +1210,7 @@
 
 - github      : scardinius
   name        : Tomasz Pietrzkowski
-  organization: We Move Europe/Caltha
+  organization: Caltha
   jira        : scardinius
 
 - github      : seamuslee001
@@ -1167,6 +1261,10 @@
   organization: Spry Digital
   jira        : ehendricks
 
+- github      : stesi561
+  name        : Luke Stewart
+  organization: Fuzion
+
 - github      : stevekessler
   name        : Steve Kessler
   organization: CiviDesk
@@ -1195,6 +1293,13 @@
   organization: Forest CRM Consulting
   jira        : tamar
 
+- github      : tanyabouman
+  name        : Tanya Bouman
+
+- github      : TBSliver
+  name        : Tom Bloor
+  jira        : TBSliver
+
 - name        : Bashar Makhay
   jira        : themak
 
@@ -1206,10 +1311,17 @@
   organization: Third Sun
   jira        : thirdsun
 
+- github      : thomst
+  name        : Thomas Leichtfuss
+  organization: Systopia
+
 - github      : thoni56
   name        : Thomas Nilefalk
   organization: Responsive Development Technologies
   jira        : thoni56
+
+- github      : tiotsop01
+  name        : Tiotsop Gerest
 
 - github      : tobiaslounsbury
   name        : Tobias Lounsbury
@@ -1316,6 +1428,10 @@
   name        : Victor Huang
   jira        : waddyvic
 
+- github      : wannesderoy
+  name        : Wannes De Roy
+  organization: Calibrate
+
 - name        : Milli Aje
   organization: Debre-Genet Holy Trinity Ethiopian Orthodox Tewahedo Church
   jira        : 'website@dght.uk'
@@ -1354,3 +1470,7 @@
   name        : Yashodha Chaku
   organization: CiviDesk
   jira        : yashodha
+
+- github      : hosseinamin
+  name        : Hossein Amin
+  jira        : hosseinamin

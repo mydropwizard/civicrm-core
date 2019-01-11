@@ -576,7 +576,6 @@
 
   /**
    * Format value to look like php code
-   * TODO: Use short array syntax when we drop support for php 5.3
    * @param val
    */
   function phpFormat(val) {
@@ -736,7 +735,7 @@
       q.php += "]";
       q.json += "\n}";
     }
-    q.php += "];";
+    q.php += ");";
     q.json += ").done(function(result) {\n  // do something\n});";
     q.smarty += "}\n{foreach from=$result.values item=" + entity.toLowerCase() + "}\n  {$" + entity.toLowerCase() + ".some_field}\n{/foreach}";
     if (!_.includes(action, 'get')) {
@@ -760,7 +759,7 @@
       alert(ts('Select an entity.'));
       return;
     }
-    if (!_.includes(action, 'get') && action != 'check') {
+    if (!_.includes(action, 'get') && !_.includes(action, 'check')) {
       var msg = action === 'delete' ? ts('This will delete data from CiviCRM. Are you sure?') : ts('This will write to the database. Continue?');
       CRM.confirm({title: ts('Confirm %1', {1: action}), message: msg}).on('crmConfirm:yes', execute);
     } else {

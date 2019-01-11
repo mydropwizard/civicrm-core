@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -33,11 +33,12 @@
  * @group headless
  */
 class api_v3_ACLPermissionTest extends CiviUnitTestCase {
+
+  use CRMTraits_ACL_PermissionTrait;
+
   protected $_apiversion = 3;
   public $DBResetRequired = FALSE;
   protected $_entity;
-  protected $allowedContactId = 0;
-  protected $allowedContacts = array();
 
   public function setUp() {
     parent::setUp();
@@ -443,47 +444,6 @@ class api_v3_ACLPermissionTest extends CiviUnitTestCase {
   }
 
   /**
-   * All results returned.
-   *
-   * @implements CRM_Utils_Hook::aclWhereClause
-   *
-   * @param string $type
-   * @param array $tables
-   * @param array $whereTables
-   * @param int $contactID
-   * @param string $where
-   */
-  public function aclWhereHookAllResults($type, &$tables, &$whereTables, &$contactID, &$where) {
-    $where = " (1) ";
-  }
-
-  /**
-   * All but first results returned.
-   * @implements CRM_Utils_Hook::aclWhereClause
-   * @param $type
-   * @param $tables
-   * @param $whereTables
-   * @param $contactID
-   * @param $where
-   */
-  public function aclWhereOnlySecond($type, &$tables, &$whereTables, &$contactID, &$where) {
-    $where = " contact_a.id > 1";
-  }
-
-  /**
-   * Only specified contact returned.
-   * @implements CRM_Utils_Hook::aclWhereClause
-   * @param $type
-   * @param $tables
-   * @param $whereTables
-   * @param $contactID
-   * @param $where
-   */
-  public function aclWhereOnlyOne($type, &$tables, &$whereTables, &$contactID, &$where) {
-    $where = " contact_a.id = " . $this->allowedContactId;
-  }
-
-  /**
    * Basic check that an unpermissioned call keeps working and permissioned call fails.
    */
   public function testGetActivityNoPermissions() {
@@ -511,7 +471,7 @@ class api_v3_ACLPermissionTest extends CiviUnitTestCase {
   }
 
   /**
-   * View all activities is required unless id is passed in, in which case ACLs are used.
+   * Without view all activities contact level acls are used.
    */
   public function testGetActivityViewAllContactsEnoughWIthID() {
     $activity = $this->activityCreate();
@@ -526,6 +486,38 @@ class api_v3_ACLPermissionTest extends CiviUnitTestCase {
     $activity = $this->activityCreate();
     $this->setPermissions(array('access CiviCRM'));
     $this->callAPIFailure('Activity', 'getsingle', array('check_permissions' => 1, 'id' => $activity['id']));
+  }
+
+  /**
+   * Check that component related activity filtering.
+   *
+   * If the contact does NOT have permission to 'view all contacts' but they DO have permission
+   * to view the contact in question they will only see the activities of components they have access too.
+   *
+   * (logically the same component limit should apply when they have access to view all too but....
+   * adding test for 'how it is at the moment.)
+   */
+  public function testGetActivityCheckPermissionsByComponent() {
+    $activity = $this->activityCreate(['activity_type_id' => 'Contribution']);
+    $activity2 = $this->activityCreate(['activity_type_id' => 'Pledge Reminder']);
+    $this->hookClass->setHook('civicrm_aclWhereClause', array($this, 'aclWhereHookAllResults'));
+    $this->setPermissions(['access CiviCRM', 'access CiviContribute']);
+    $this->callAPISuccessGetSingle('Activity', ['check_permissions' => 1, 'id' => ['IN' => [$activity['id'], $activity2['id']]]]);
+    $this->callAPISuccessGetCount('Activity', ['check_permissions' => 1, 'id' => ['IN' => [$activity['id'], $activity2['id']]]], 1);
+
+  }
+
+  /**
+   * Check that component related activity filtering works for CiviCase.
+   */
+  public function testGetActivityCheckPermissionsByCaseComponent() {
+    CRM_Core_BAO_ConfigSetting::enableComponent('CiviCase');
+    $activity = $this->activityCreate(['activity_type_id' => 'Open Case']);
+    $activity2 = $this->activityCreate(['activity_type_id' => 'Pledge Reminder']);
+    $this->hookClass->setHook('civicrm_aclWhereClause', array($this, 'aclWhereHookAllResults'));
+    $this->setPermissions(['access CiviCRM', 'access CiviContribute', 'access all cases and activities']);
+    $this->callAPISuccessGetSingle('Activity', ['check_permissions' => 1, 'id' => ['IN' => [$activity['id'], $activity2['id']]]]);
+    $this->callAPISuccessGetCount('Activity', ['check_permissions' => 1, 'id' => ['IN' => [$activity['id'], $activity2['id']]]], 1);
   }
 
   /**

@@ -12,11 +12,6 @@ return [
     'class' => 'CRM_Core_DAO_Extension',
     'table' => 'civicrm_extension',
   ],
-  'CRM_Core_DAO_File' => [
-    'name' => 'File',
-    'class' => 'CRM_Core_DAO_File',
-    'table' => 'civicrm_file',
-  ],
   'CRM_Core_DAO_LocationType' => [
     'name' => 'LocationType',
     'class' => 'CRM_Core_DAO_LocationType',
@@ -127,9 +122,9 @@ return [
     'class' => 'CRM_Batch_DAO_EntityBatch',
     'table' => 'civicrm_entity_batch',
   ],
-  'CRM_Mailing_DAO_Component' => [
-    'name' => 'Component',
-    'class' => 'CRM_Mailing_DAO_Component',
+  'CRM_Mailing_DAO_MailingComponent' => [
+    'name' => 'MailingComponent',
+    'class' => 'CRM_Mailing_DAO_MailingComponent',
     'table' => 'civicrm_mailing_component',
   ],
   'CRM_Mailing_DAO_MailingAB' => [
@@ -292,10 +287,10 @@ return [
     'class' => 'CRM_Core_DAO_Email',
     'table' => 'civicrm_email',
   ],
-  'CRM_Core_DAO_EntityFile' => [
-    'name' => 'EntityFile',
-    'class' => 'CRM_Core_DAO_EntityFile',
-    'table' => 'civicrm_entity_file',
+  'CRM_Core_DAO_File' => [
+    'name' => 'File',
+    'class' => 'CRM_Core_DAO_File',
+    'table' => 'civicrm_file',
   ],
   'CRM_Core_DAO_IM' => [
     'name' => 'IM',
@@ -531,6 +526,11 @@ return [
     'name' => 'Discount',
     'class' => 'CRM_Core_DAO_Discount',
     'table' => 'civicrm_discount',
+  ],
+  'CRM_Core_DAO_EntityFile' => [
+    'name' => 'EntityFile',
+    'class' => 'CRM_Core_DAO_EntityFile',
+    'table' => 'civicrm_entity_file',
   ],
   'CRM_Core_DAO_EntityTag' => [
     'name' => 'EntityTag',

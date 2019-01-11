@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2018
+ * @copyright CiviCRM LLC (c) 2004-2019
  * $Id$
  *
  */
@@ -52,11 +52,6 @@ class CRM_Member_Form_MembershipConfig extends CRM_Core_Form {
    * @var string
    */
   protected $_BAOName;
-
-  public function preProcess() {
-    $this->_id = $this->get('id');
-    $this->_BAOName = $this->get('BAOName');
-  }
 
   /**
    * Set default values for the form. MobileProvider that in edit/view mode
