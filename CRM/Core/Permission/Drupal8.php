@@ -49,6 +49,10 @@ class CRM_Core_Permission_Drupal8 extends CRM_Core_Permission_DrupalBase {
    * @return bool
    */
   public function check($str, $userId = NULL) {
+    if (!\Drupal::hasContainer()) {
+      return FALSE;
+    }
+
     $str = $this->translatePermission($str, 'Drupal', [
       'view user account' => 'access user profiles',
     ]);
