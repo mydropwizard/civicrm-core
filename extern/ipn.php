@@ -75,17 +75,9 @@ else {
   // @todo upgrade standard per Pro
 }
 try {
-  switch ($config->userFramework) {
-    case 'Joomla':
-      // CRM-18245
-      CRM_Utils_System::loadBootStrap();
-      break;
-
-    default:
-      // Gitlab issues: #973, #1017
-      CRM_Utils_System::loadBootStrap([], FALSE);
-      break;
-
+  //CRM-18245
+  if (in_array($config->userFramework, array('Drupal8', 'Joomla'))) {
+    CRM_Utils_System::loadBootStrap();
   }
   $paypalIPN->main();
 }
