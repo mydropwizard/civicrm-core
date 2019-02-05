@@ -603,7 +603,11 @@ class CRM_Core_Resources {
 
       $tsLocale = CRM_Core_I18n::getLocale();
       // Dynamic localization script
-      $this->addScriptUrl(CRM_Utils_System::url('civicrm/ajax/l10n-js/' . $tsLocale, array('r' => $this->getCacheCode())), $jsWeight++, $region);
+      $args = [
+        'r' => $this->getCacheCode(),
+        'cid' => CRM_Core_Session::getLoggedInContactID(),
+      ];
+      $this->addScriptUrl(CRM_Utils_System::url('civicrm/ajax/l10n-js/' . $tsLocale, $args, FALSE, NULL, FALSE), $jsWeight++, $region);
 
       // Add global settings
       $settings = array(
@@ -837,18 +841,18 @@ class CRM_Core_Resources {
       array('key' => 'status_id', 'value' => ts('Activity Status')),
     );
 
-    $filters['contact'] = array(
-      array('key' => 'contact_type', 'value' => ts('Contact Type')),
-      array('key' => 'group', 'value' => ts('Group'), 'entity' => 'group_contact'),
-      array('key' => 'tag', 'value' => ts('Tag'), 'entity' => 'entity_tag'),
-      array('key' => 'state_province', 'value' => ts('State/Province'), 'entity' => 'address'),
-      array('key' => 'country', 'value' => ts('Country'), 'entity' => 'address'),
-      array('key' => 'gender_id', 'value' => ts('Gender')),
-      array('key' => 'is_deceased', 'value' => ts('Deceased')),
-      array('key' => 'contact_id', 'value' => ts('Contact ID'), 'type' => 'text'),
-      array('key' => 'external_identifier', 'value' => ts('External ID'), 'type' => 'text'),
-      array('key' => 'source', 'value' => ts('Contact Source'), 'type' => 'text'),
-    );
+    $filters['contact'] = [
+      ['key' => 'contact_type', 'value' => ts('Contact Type')],
+      ['key' => 'group', 'value' => ts('Group'), 'entity' => 'group_contact'],
+      ['key' => 'tag', 'value' => ts('Tag'), 'entity' => 'entity_tag'],
+      ['key' => 'state_province', 'value' => ts('State/Province'), 'entity' => 'address'],
+      ['key' => 'country', 'value' => ts('Country'), 'entity' => 'address'],
+      ['key' => 'gender_id', 'value' => ts('Gender'), 'condition' => ['contact_type' => 'Individual']],
+      ['key' => 'is_deceased', 'value' => ts('Deceased'), 'condition' => ['contact_type' => 'Individual']],
+      ['key' => 'contact_id', 'value' => ts('Contact ID'), 'type' => 'text'],
+      ['key' => 'external_identifier', 'value' => ts('External ID'), 'type' => 'text'],
+      ['key' => 'source', 'value' => ts('Contact Source'), 'type' => 'text'],
+    ];
 
     if (in_array('CiviCase', $config->enableComponents)) {
       $filters['case'] = array(
@@ -868,6 +872,41 @@ class CRM_Core_Resources {
         $filter['key'] = 'contact_id.' . $filter['key'];
         $filters['case'][] = $filter;
       }
+    }
+
+    if (in_array('CiviCampaign', $config->enableComponents)) {
+      $filters['campaign'] = [
+        ['key' => 'campaign_type_id', 'value' => ts('Campaign Type')],
+        ['key' => 'status_id', 'value' => ts('Status')],
+        [
+          'key' => 'start_date',
+          'value' => ts('Start Date'),
+          'options' => [
+            ['key' => '{">":"now"}', 'value' => ts('Upcoming')],
+            [
+              'key' => '{"BETWEEN":["now - 3 month","now"]}',
+              'value' => ts('Past 3 Months'),
+            ],
+            [
+              'key' => '{"BETWEEN":["now - 6 month","now"]}',
+              'value' => ts('Past 6 Months'),
+            ],
+            [
+              'key' => '{"BETWEEN":["now - 1 year","now"]}',
+              'value' => ts('Past Year'),
+            ],
+          ],
+        ],
+        [
+          'key' => 'end_date',
+          'value' => ts('End Date'),
+          'options' => [
+            ['key' => '{">":"now"}', 'value' => ts('In the future')],
+            ['key' => '{"<":"now"}', 'value' => ts('In the past')],
+            ['key' => '{"IS NULL":"1"}', 'value' => ts('Not set')],
+          ],
+        ],
+      ];
     }
 
     CRM_Utils_Hook::entityRefFilters($filters);

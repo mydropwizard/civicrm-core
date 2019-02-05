@@ -379,9 +379,6 @@ class CRM_Contact_BAO_Contact extends CRM_Contact_DAO_Contact {
       }
       else {
         $contactId = $contact->id;
-        if (isset($note['contact_id'])) {
-          $contactId = $note['contact_id'];
-        }
         //if logged in user, overwrite contactId
         if ($userID) {
           $contactId = $userID;
@@ -3643,6 +3640,18 @@ LEFT JOIN civicrm_address ON ( civicrm_address.contact_id = civicrm_contact.id )
       }
     }
     return FALSE;
+  }
+
+  /**
+   * Checks permission to create new contacts from entityRef widget
+   *
+   * Note: other components must return an array of links from this function,
+   * but Contacts are given special treatment - the links are in javascript already.
+   *
+   * @return bool
+   */
+  public static function entityRefCreateLinks() {
+    return CRM_Core_Permission::check([['profile create', 'profile listings and forms']]);
   }
 
 }

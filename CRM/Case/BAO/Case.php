@@ -726,7 +726,7 @@ LEFT JOIN civicrm_option_group aog ON aog.name='activity_type'
             );
           }
         }
-        if (self::checkPermission($actId, 'edit', $case['activity_type_id'], $userID)) {
+        if (isset($case['activity_type_id']) && self::checkPermission($actId, 'edit', $case['activity_type_id'], $userID)) {
           $casesList[$key]['date'] .= sprintf('<a class="action-item crm-hover-button" href="%s" title="%s"><i class="crm-i fa-pencil"></i></a>',
             CRM_Utils_System::url('civicrm/case/activity', array('reset' => 1, 'cid' => $case['contact_id'], 'caseid' => $case['case_id'], 'action' => 'update', 'id' => $actId)),
             ts('Edit activity')
@@ -1342,9 +1342,9 @@ SELECT case_status.label AS case_status, status_id, civicrm_case_type.title AS c
     }
 
     $tplParams = $activityInfo = array();
-    //if its a case activity
+    $activityTypeId = CRM_Core_DAO::getFieldValue('CRM_Activity_DAO_Activity', $activityId, 'activity_type_id');
+    // If it's a case activity
     if ($caseId) {
-      $activityTypeId = CRM_Core_DAO::getFieldValue('CRM_Activity_DAO_Activity', $activityId, 'activity_type_id');
       $nonCaseActivityTypes = CRM_Core_PseudoConstant::activityType();
       if (!empty($nonCaseActivityTypes[$activityTypeId])) {
         $anyActivity = TRUE;
@@ -1368,6 +1368,7 @@ SELECT case_status.label AS case_status, status_id, civicrm_case_type.title AS c
     if ($caseId) {
       $activityInfo['fields'][] = array('label' => 'Case ID', 'type' => 'String', 'value' => $caseId);
     }
+    $tplParams['activityTypeName'] = CRM_Core_PseudoConstant::getLabel('CRM_Activity_DAO_Activity', 'activity_type_id', $activityTypeId);
     $tplParams['activity'] = $activityInfo;
     foreach ($tplParams['activity']['fields'] as $k => $val) {
       if (CRM_Utils_Array::value('label', $val) == ts('Subject')) {
@@ -1426,7 +1427,7 @@ SELECT case_status.label AS case_status, status_id, civicrm_case_type.title AS c
         )
       );
 
-      $activityParams['subject'] = $activitySubject . ' - copy sent to ' . $displayName;
+      $activityParams['subject'] = ts('%1 - copy sent to %2', [1 => $activitySubject, 2 => $displayName]);
       $activityParams['details'] = $message;
 
       if (!empty($result[$info['contact_id']])) {
