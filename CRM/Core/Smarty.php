@@ -97,7 +97,12 @@ class CRM_Core_Smarty extends Smarty {
     else {
       $this->template_dir = $config->templateDir;
     }
-    $this->compile_dir = CRM_Utils_File::addTrailingSlash(CRM_Utils_File::addTrailingSlash($config->templateCompileDir) . $this->getLocale());
+    if (defined('CIVICRM_REAL_TEMPLATE_COMPILEDIR')) {
+      $this->compile_dir = CRM_Utils_File::addTrailingSlash(CRM_Utils_File::addTrailingSlash(CIVICRM_REAL_TEMPLATE_COMPILEDIR) . $this->getLocale());
+    }
+    else {
+      $this->compile_dir = CRM_Utils_File::addTrailingSlash(CRM_Utils_File::addTrailingSlash($config->templateCompileDir) . $this->getLocale());
+    }
     CRM_Utils_File::createDir($this->compile_dir);
     CRM_Utils_File::restrictAccess($this->compile_dir);
 
