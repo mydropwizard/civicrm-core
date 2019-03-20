@@ -97,6 +97,9 @@
       function updateInputFields(e, context) {
         var val = $dataField.val(),
           time = null;
+        if (isNaN(Date.parse(val))) {
+          val = "";
+        }
         if (context !== 'userInput' && context !== 'crmClear') {
           if (hasDatepicker) {
             $dateField.datepicker('setDate', _.includes(val, '-') ? $.datepicker.parseDate('yy-mm-dd', val) : null);
