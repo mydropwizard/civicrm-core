@@ -151,6 +151,7 @@ class CRM_Contribute_Form_Task_Invoice extends CRM_Contribute_Form_Task {
     $this->add('select', 'to_email_address', ts('To'), static::getToEmails(), TRUE);
     $this->add('text', 'cc_email_address', ts('CC'));
     $this->add('text', 'bcc_email_address', ts('BCC'));
+    $this->add('text', 'subject_email_address', ts('Subject'));
     if ($this->_selectedOutput != 'email') {
       $this->addElement('radio', 'output', NULL, ts('Email Invoice'), 'email_invoice');
       $this->addElement('radio', 'output', NULL, ts('PDF Invoice'), 'pdf_invoice');
@@ -164,6 +165,7 @@ class CRM_Contribute_Form_Task_Invoice extends CRM_Contribute_Form_Task {
       $this->addRule('cc_email_address', ts('Max length is 255 characters'), 'maxlength', 255);
       $this->addRule('bcc_email_address', ts('BCC needs to be an email'), 'email');
       $this->addRule('bcc_email_address', ts('Max length is 255 characters'), 'maxlength', 255);
+      $this->addRule('subject_email_address', ts('Max length is 255 characters'), 'maxlength', 255);
     }
 
     $this->add('wysiwyg', 'email_comment', ts('If you would like to add personal message to email please add it here. (If sending to more then one receipient the same message will be sent to each contact.)'), array(
@@ -507,12 +509,15 @@ class CRM_Contribute_Form_Task_Invoice extends CRM_Contribute_Form_Task {
         $ccEmailAddress = CRM_Utils_Array::value('cc_email_address', $params);
         // bcc email address
         $bccEmailAddress = CRM_Utils_Array::value('bcc_email_address', $params);
+        // overrides default mail subject
+        $subjectEmail = CRM_Utils_Array::value('subject_email_address', $params);
 
         $sendTemplateParams['tplParams'] = array_merge($tplParams, array('email_comment' => $invoiceElements['params']['email_comment']));
         $sendTemplateParams['from'] = $fromEmailAddress;
         $sendTemplateParams['toEmail'] = $toEmailAddress;
         $sendTemplateParams['cc'] = $ccEmailAddress;
         $sendTemplateParams['bcc'] = $bccEmailAddress;
+        $sendTemplateParams['subject'] = !empty($subjectEmail)? $subjectEmail : 'Invoice ' . $contribution->id;
 
         list($sent, $subject, $message, $html) = CRM_Core_BAO_MessageTemplate::sendTemplate($sendTemplateParams);
         // functions call for adding activity with attachment
@@ -522,11 +527,15 @@ class CRM_Contribute_Form_Task_Invoice extends CRM_Contribute_Form_Task {
       elseif ($contribution->_component == 'event') {
         $email = CRM_Contact_BAO_Contact::getPrimaryEmail($contribution->contact_id);
 
+        // overrides default mail subject
+        $subjectEmail = CRM_Utils_Array::value('subject_email_address', $params);
+
         $sendTemplateParams['tplParams'] = array_merge($tplParams, array('email_comment' => $invoiceElements['params']['email_comment']));
         $sendTemplateParams['from'] = $fromEmailAddress;
         $sendTemplateParams['toEmail'] = $email;
         $sendTemplateParams['cc'] = CRM_Utils_Array::value('cc_confirm', $values);
         $sendTemplateParams['bcc'] = CRM_Utils_Array::value('bcc_confirm', $values);
+        $sendTemplateParams['subject'] = $subjectEmail;
 
         list($sent, $subject, $message, $html) = CRM_Core_BAO_MessageTemplate::sendTemplate($sendTemplateParams);
         // functions call for adding activity with attachment

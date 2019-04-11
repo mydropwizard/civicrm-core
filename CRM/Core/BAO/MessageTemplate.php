@@ -428,8 +428,10 @@ class CRM_Core_BAO_MessageTemplate extends CRM_Core_DAO_MessageTemplate {
       }
     }
 
+    $mailSubject = !empty($params['subject'])? $params['subject'] : $dao->subject;
+
     $mailContent = array(
-      'subject' => $dao->subject,
+      'subject' => $mailSubject,
       'text' => $dao->text,
       'html' => $dao->html,
       'format' => $dao->format,
