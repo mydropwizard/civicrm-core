@@ -56,6 +56,10 @@
     <td class="label">{$form.bcc_email_address.label}</td>
     <td>{$form.bcc_email_address.html}</td>
   </tr>
+  <tr id="Subject" style="display: none" class="crm-contactEmail-bcc-block-toEmailAddress crm-email-element">
+    <td class="label">{$form.subject_email_address.label}</td>
+    <td>{$form.subject_email_address.html}</td>
+  </tr>
   <tr class="crm-email-element">
     <td class="label">{$form.email_comment.label}</td>
     <td>{$form.email_comment.html}</td>
