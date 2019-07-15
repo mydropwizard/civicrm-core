@@ -172,6 +172,9 @@
             $(orig_id).val($(id).val());
           }
           for (var id in select_ids) {
+            // Make sure the fields we're copying exists
+            $(orig_id).empty();
+            $(orig_id).append($(id).html());
             orig_id = select_ids[id];
             $(orig_id + ' option').prop('selected', false);
             $(orig_id + ' option[value="' + $(id).val() + '"]').prop('selected', true);
