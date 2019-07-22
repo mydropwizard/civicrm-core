@@ -809,4 +809,11 @@ class CRM_Utils_System_Drupal8 extends CRM_Utils_System_DrupalBase {
     return $url;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function logger($message) {
+    Drupal::logger('civicrm')->debug($message);
+  }
+
 }
