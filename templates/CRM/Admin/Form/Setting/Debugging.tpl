@@ -36,6 +36,13 @@
                 <span class="description">{ts}Set this value to <strong>Yes</strong> if you want CiviCRM error/debugging messages to appear in the Drupal error logs{/ts} {help id='userFrameworkLogging'}</span></td>
             </tr>
             {/if}
+             {if $form.fileLogging}
+                 <tr class="crm-debugging-form-block-fileLogging">
+                     <td class="label">{$form.fileLogging.label}</td>
+                     <td>{$form.fileLogging.html}<br />
+                         <span class="description">{ts}Set this value to <strong>Yes</strong> if you want CiviCRM error/debugging messages to log to files under ConfigAndLog{/ts} {help id='fileLogging'}</span></td>
+                 </tr>
+             {/if}
             <tr class="crm-debugging-form-block-debug">
                 <td class="label">{$form.debug_enabled.label}</td>
                 <td>{$form.debug_enabled.html}<br />
