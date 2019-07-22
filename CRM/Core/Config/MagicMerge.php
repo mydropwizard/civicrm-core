@@ -167,6 +167,7 @@ class CRM_Core_Config_MagicMerge {
       'smartGroupCacheTimeout' => ['setting'],
       'timeInputFormat' => ['setting'],
       'userFrameworkLogging' => ['setting'],
+      'fileLogging' => ['setting'],
       'userFrameworkUsersTableName' => ['setting'],
       'verpSeparator' => ['setting'],
       'wkhtmltopdfPath' => ['setting'],
