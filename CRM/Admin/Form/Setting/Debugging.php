@@ -37,6 +37,8 @@ class CRM_Admin_Form_Setting_Debugging extends CRM_Admin_Form_Setting {
       $this->_settings['userFrameworkLogging'] = CRM_Core_BAO_Setting::DEVELOPER_PREFERENCES_NAME;
     }
 
+    $this->_settings['fileLogging'] = CRM_Core_BAO_Setting::DEVELOPER_PREFERENCES_NAME;
+
     parent::buildQuickForm();
     if (Civi::settings()->getMandatory('environment') !== NULL) {
       $element = $this->getElement('environment');
