@@ -594,14 +594,17 @@ class CRM_Core_Error extends PEAR_ErrorStack {
   public static function debug_log_message($message, $out = FALSE, $prefix = '', $priority = NULL) {
     $config = CRM_Core_Config::singleton();
 
-    $file_log = self::createDebugLogger($prefix);
-    $file_log->log("$message\n", $priority);
-
     $str = '<p/><code>' . htmlspecialchars($message) . '</code>';
-    if ($out && CRM_Core_Permission::check('view debug output')) {
-      echo $str;
+
+    if ($config->fileLogging) {
+      $file_log = self::createDebugLogger($prefix);
+      $file_log->log("$message\n", $priority);
+
+      if ($out && CRM_Core_Permission::check('view debug output')) {
+        echo $str;
+      }
+      $file_log->close();
     }
-    $file_log->close();
 
     if (!isset(\Civi::$statics[__CLASS__]['userFrameworkLogging'])) {
       // Set it to FALSE first & then try to set it. This is to prevent a loop as calling
