@@ -188,7 +188,7 @@ class CRM_Contact_Form_Task_EmailCommon {
       // perform all validations on unique contact Ids
       foreach (array_unique($form->_allContactIds) as $key => $contactId) {
         $value = $form->_contactDetails[$contactId];
-        if ($value['do_not_email'] || empty($value['email']) || !empty($value['is_deceased']) || $value['on_hold']) {
+        if ($value['do_not_email'] || empty($value['email']) || !empty($value['is_deceased']) || (!empty($form->_toEmail) && $form_>toEmail['on_hold'])) {
           $suppressedEmails++;
 
           // unset contact details for contacts that we won't be sending email. This is prevent extra computation
