@@ -346,7 +346,6 @@ AND    reset_date IS NULL
       'api.Email.get' => ['api.LocationType.getsingle' => []],
     ]);
 
-    $contactName = $contactEntity['display_name'];
     //Get mail entities from this contact
     $mailEntities = $contactEntity['api.Email.get'];
     foreach ($mailEntities['values'] as $mailEntity) {
@@ -355,7 +354,7 @@ AND    reset_date IS NULL
       $locationTypeEntity = $mailEntity['api.LocationType.getsingle'];
       $locationName = $locationTypeEntity['display_name'];
 
-      $toEmail = "$contactName <$email>";
+      $toEmail = $email;
       $toEmailHtml = $locationName;
 
       if (!empty($mailEntity['is_primary'])) {
