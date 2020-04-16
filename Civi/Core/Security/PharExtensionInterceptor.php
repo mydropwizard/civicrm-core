@@ -34,7 +34,7 @@ class PharExtensionInterceptor implements Assertable {
    * @throws Exception
    *   Thrown when the file is not allowed to execute.
    */
-  public function assert(string $path, string $command): bool {
+  public function assert($path, $command): bool {
     if ($this->baseFileContainsPharExtension($path)) {
       return TRUE;
     }
