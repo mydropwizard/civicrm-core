@@ -1,27 +1,11 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 5                                                  |
- +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2019                                |
- +--------------------------------------------------------------------+
- | This file is a part of CiviCRM.                                    |
+ | Copyright CiviCRM LLC. All rights reserved.                        |
  |                                                                    |
- | CiviCRM is free software; you can copy, modify, and distribute it  |
- | under the terms of the GNU Affero General Public License           |
- | Version 3, 19 November 2007 and the CiviCRM Licensing Exception.   |
- |                                                                    |
- | CiviCRM is distributed in the hope that it will be useful, but     |
- | WITHOUT ANY WARRANTY; without even the implied warranty of         |
- | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.               |
- | See the GNU Affero General Public License for more details.        |
- |                                                                    |
- | You should have received a copy of the GNU Affero General Public   |
- | License and the CiviCRM Licensing Exception along                  |
- | with this program; if not, contact CiviCRM LLC                     |
- | at info[AT]civicrm[DOT]org. If you have questions about the        |
- | GNU Affero General Public License or the licensing of CiviCRM,     |
- | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
+ | This work is published under the GNU AGPLv3 license with some      |
+ | permitted exceptions and without any warranty. For full license    |
+ | and copyright information, see https://civicrm.org/licensing       |
  +--------------------------------------------------------------------+
  */
 
@@ -97,10 +81,18 @@ class CRM_Contact_Page_View_UserDashBoardTest extends CiviUnitTestCase {
     ]);
     $this->contributions[] = $this->contributionCreate([
       'contact_id' => $this->contactID,
-      'receive_date' => '2018-11-21',
-      'receipt_date' => '2018-11-22',
+      'receive_date' => '2018-11-22',
+      'receipt_date' => '2018-11-23',
       'trxn_id' => '',
       'invoice_id' => '',
+    ]);
+    $this->contributions[] = $this->contributionCreate([
+      'contact_id' => $this->contactID,
+      'receive_date' => '2018-11-24',
+      'receipt_date' => '2018-11-24',
+      'trxn_id' => '',
+      'invoice_id' => '',
+      'contribution_status_id' => 'Pending',
     ]);
     $recur = $this->callAPISuccess('ContributionRecur', 'create', [
       'contact_id' => $this->contactID,
@@ -109,7 +101,7 @@ class CRM_Contact_Page_View_UserDashBoardTest extends CiviUnitTestCase {
     ]);
     $this->contributions[] = $this->contributionCreate([
       'contact_id' => $this->contactID,
-      'receive_date' => '2018-11-21',
+      'receive_date' => '2018-11-20',
       'amount_level' => 'high',
       'contribution_status_id' => 'Cancelled',
       'invoice_id' => NULL,
@@ -117,15 +109,17 @@ class CRM_Contact_Page_View_UserDashBoardTest extends CiviUnitTestCase {
       'contribution_recur_id' => $recur['id'],
     ]);
     $this->callAPISuccess('Setting', 'create', ['invoicing' => 1]);
+    $this->callAPISuccess('Setting', 'create', ['default_invoice_page' => $this->contributionPageCreate()['id']]);
     $this->runUserDashboard();
     $expectedStrings = [
       'Your Contribution(s)',
       '<table class="selector"><tr class="columnheader"><th>Total Amount</th><th>Financial Type</th><th>Received date</th><th>Receipt Sent</th><th>Status</th><th></th>',
       '<td>Completed</td><td><a class="button no-popup nowrap"href="/index.php?q=civicrm/contribute/invoice&amp;reset=1&amp;id=1&amp;cid=' . $this->contactID . '"><i class="crm-i fa-print"></i><span>Print Invoice</span></a></td></tr><tr id=\'rowid2\'',
+      'Pay Now',
     ];
 
     $this->assertPageContains($expectedStrings);
-    $this->assertSmartyVariableArrayIncludes('contribute_rows', 0, [
+    $this->assertSmartyVariableArrayIncludes('contribute_rows', 1, [
       'contact_id' => $this->contactID,
       'contribution_id' => '1',
       'total_amount' => '100.00',
@@ -134,13 +128,16 @@ class CRM_Contact_Page_View_UserDashBoardTest extends CiviUnitTestCase {
       'receive_date' => '2018-11-21 00:00:00',
       'contribution_status' => 'Completed',
       'currency' => 'USD',
-      //'receipt_date' => '2018-11-22 00:00:00',
+      'receipt_date' => '2018-11-22 00:00:00',
     ]);
 
   }
 
   /**
    * Test the content of the dashboard.
+   *
+   * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    */
   public function testDashboardContentContributions() {
     $this->contributionCreate(['contact_id' => $this->contactID]);

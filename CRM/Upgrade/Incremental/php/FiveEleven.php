@@ -1,26 +1,11 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 5                                                  |
- +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2019                                |
- +--------------------------------------------------------------------+
- | This file is a part of CiviCRM.                                    |
+ | Copyright CiviCRM LLC. All rights reserved.                        |
  |                                                                    |
- | CiviCRM is free software; you can copy, modify, and distribute it  |
- | under the terms of the GNU Affero General Public License           |
- | Version 3, 19 November 2007.                                       |
- |                                                                    |
- | CiviCRM is distributed in the hope that it will be useful, but     |
- | WITHOUT ANY WARRANTY; without even the implied warranty of         |
- | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.               |
- | See the GNU Affero General Public License for more details.        |
- |                                                                    |
- | You should have received a copy of the GNU Affero General Public   |
- | License along with this program; if not, contact CiviCRM LLC       |
- | at info[AT]civicrm[DOT]org. If you have questions about the        |
- | GNU Affero General Public License or the licensing of CiviCRM,     |
- | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
+ | This work is published under the GNU AGPLv3 license with some      |
+ | permitted exceptions and without any warranty. For full license    |
+ | and copyright information, see https://civicrm.org/licensing       |
  +--------------------------------------------------------------------+
  */
 
@@ -73,8 +58,38 @@ class CRM_Upgrade_Incremental_php_FiveEleven extends CRM_Upgrade_Incremental_Bas
    * @param string $rev
    */
   public function upgrade_5_11_alpha1($rev) {
-    $this->addTask(ts('Upgrade DB to %1: SQL', array(1 => $rev)), 'runSql', $rev);
-    $this->addTask('Update smart groups where jcalendar fields have been converted to datepicker', 'updateSmartGroups', $rev);
+    $this->addTask(ts('Upgrade DB to %1: SQL', [1 => $rev]), 'runSql', $rev);
+    $this->addTask('Update smart groups where jcalendar fields have been converted to datepicker', 'updateSmartGroups', [
+      'datepickerConversion' => [
+        'grant_application_received_date',
+        'grant_decision_date',
+        'grant_money_transfer_date',
+        'grant_due_date',
+      ],
+    ]);
+    if (Civi::settings()->get('civimail_multiple_bulk_emails')) {
+      $this->addTask('Update any on hold groups to reflect field change', 'updateOnHold', $rev);
+    }
+  }
+
+  /**
+   * Upgrade function.
+   *
+   * @param string $rev
+   */
+  public function upgrade_5_11_beta1($rev) {
+    if (Civi::settings()->get('civimail_multiple_bulk_emails')) {
+      $this->addTask('Update any on hold groups to reflect field change', 'updateOnHold', $rev);
+    }
+  }
+
+  /**
+   * Update on hold groups -note the core function layout for this sort of upgrade changed in 5.12 - don't copy this.
+   */
+  public function updateOnHold($ctx, $version) {
+    $groupUpdateObject = new CRM_Upgrade_Incremental_SmartGroups($version);
+    $groupUpdateObject->convertEqualsStringToInArray('on_hold');
+    return TRUE;
   }
 
 }

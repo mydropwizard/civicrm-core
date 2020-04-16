@@ -1,35 +1,22 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 5                                                  |
- +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2019                                |
- +--------------------------------------------------------------------+
- | This file is a part of CiviCRM.                                    |
+ | Copyright CiviCRM LLC. All rights reserved.                        |
  |                                                                    |
- | CiviCRM is free software; you can copy, modify, and distribute it  |
- | under the terms of the GNU Affero General Public License           |
- | Version 3, 19 November 2007 and the CiviCRM Licensing Exception.   |
- |                                                                    |
- | CiviCRM is distributed in the hope that it will be useful, but     |
- | WITHOUT ANY WARRANTY; without even the implied warranty of         |
- | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.               |
- | See the GNU Affero General Public License for more details.        |
- |                                                                    |
- | You should have received a copy of the GNU Affero General Public   |
- | License and the CiviCRM Licensing Exception along                  |
- | with this program; if not, contact CiviCRM LLC                     |
- | at info[AT]civicrm[DOT]org. If you have questions about the        |
- | GNU Affero General Public License or the licensing of CiviCRM,     |
- | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
+ | This work is published under the GNU AGPLv3 license with some      |
+ | permitted exceptions and without any warranty. For full license    |
+ | and copyright information, see https://civicrm.org/licensing       |
  +--------------------------------------------------------------------+
  */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2019
+ * @copyright CiviCRM LLC https://civicrm.org/licensing
  */
+
+use function xKerman\Restricted\unserialize;
+use xKerman\Restricted\UnserializeFailedException;
 
 require_once 'HTML/QuickForm/Rule/Email.php';
 
@@ -107,12 +94,12 @@ class CRM_Utils_String {
    * @return string
    */
   public static function convertStringToCamel($string) {
-    $map = array(
+    $map = [
       'acl' => 'Acl',
       'ACL' => 'Acl',
       'im' => 'Im',
       'IM' => 'Im',
-    );
+    ];
     if (isset($map[$string])) {
       return $map[$string];
     }
@@ -162,7 +149,7 @@ class CRM_Utils_String {
    *   The last component
    */
   public static function getClassName($string, $char = '_') {
-    $names = array();
+    $names = [];
     if (!is_array($string)) {
       $names = explode($char, $string);
     }
@@ -245,7 +232,7 @@ class CRM_Utils_String {
       return TRUE;
     }
     else {
-      $order = array('ASCII');
+      $order = ['ASCII'];
       if ($utf8) {
         $order[] = 'UTF-8';
       }
@@ -269,7 +256,7 @@ class CRM_Utils_String {
   public static function regex($str, $regexRules) {
     // redact the regular expressions
     if (!empty($regexRules) && isset($str)) {
-      static $matches, $totalMatches, $match = array();
+      static $matches, $totalMatches, $match = [];
       foreach ($regexRules as $pattern => $replacement) {
         preg_match_all($pattern, $str, $matches);
         if (!empty($matches[0])) {
@@ -295,7 +282,7 @@ class CRM_Utils_String {
       }
       return $match;
     }
-    return CRM_Core_DAO::$_nullArray;
+    return [];
   }
 
   /**
@@ -337,7 +324,7 @@ class CRM_Utils_String {
       // iconv('ISO-8859-1', 'UTF-8', $str);
     }
     else {
-      $enc = mb_detect_encoding($str, array('UTF-8'), TRUE);
+      $enc = mb_detect_encoding($str, ['UTF-8'], TRUE);
       return ($enc !== FALSE);
     }
   }
@@ -446,7 +433,7 @@ class CRM_Utils_String {
    *   the converted string
    */
   public static function htmlToText($html) {
-    require_once 'packages/html2text/rcube_html2text.php';
+    require_once 'html2text/rcube_html2text.php';
     $token_html = preg_replace('!\{([a-z_.]+)\}!i', 'token:{$1}', $html);
     $converter = new rcube_html2text($token_html);
     $token_text = $converter->get_text();
@@ -517,7 +504,7 @@ class CRM_Utils_String {
     $string = trim($string);
 
     $values = explode("\n", $string);
-    $result = array();
+    $result = [];
     foreach ($values as $value) {
       list($n, $v) = CRM_Utils_System::explode('=', $value, 2);
       if (!empty($v)) {
@@ -538,7 +525,7 @@ class CRM_Utils_String {
    *   only the first alternative found (or the text without alternatives)
    */
   public static function stripAlternatives($full) {
-    $matches = array();
+    $matches = [];
     preg_match('/-ALTERNATIVE ITEM 0-(.*?)-ALTERNATIVE ITEM 1-.*-ALTERNATIVE END-/s', $full, $matches);
 
     if (isset($matches[1]) &&
@@ -592,7 +579,7 @@ class CRM_Utils_String {
     }
 
     if ($_searchChars == NULL) {
-      $_searchChars = array(
+      $_searchChars = [
         '&',
         ';',
         ',',
@@ -610,7 +597,7 @@ class CRM_Utils_String {
         "\r\n",
         "\n",
         "\t",
-      );
+      ];
       $_replaceChar = '_';
     }
 
@@ -624,7 +611,6 @@ class CRM_Utils_String {
 
     return str_replace($search, $replace, $string);
   }
-
 
   /**
    * Use HTMLPurifier to clean up a text string and remove any potential
@@ -642,6 +628,7 @@ class CRM_Utils_String {
     if (!$_filter) {
       $config = HTMLPurifier_Config::createDefault();
       $config->set('Core.Encoding', 'UTF-8');
+      $config->set('Attr.AllowedFrameTargets', ['_blank', '_self', '_parent', '_top']);
 
       // Disable the cache entirely
       $config->set('Cache.DefinitionImpl', NULL);
@@ -699,10 +686,10 @@ class CRM_Utils_String {
   public static function parsePrefix($delim, $string, $defaultPrefix = NULL) {
     $pos = strpos($string, $delim);
     if ($pos === FALSE) {
-      return array($defaultPrefix, $string);
+      return [$defaultPrefix, $string];
     }
     else {
-      return array(substr($string, 0, $pos), substr($string, 1 + $pos));
+      return [substr($string, 0, $pos), substr($string, 1 + $pos)];
     }
   }
 
@@ -849,14 +836,14 @@ class CRM_Utils_String {
    */
   public static function simpleParseUrl($url) {
     $parts = parse_url($url);
-    $host = isset($parts['host']) ? $parts['host'] : '';
+    $host = $parts['host'] ?? '';
     $port = isset($parts['port']) ? ':' . $parts['port'] : '';
-    $path = isset($parts['path']) ? $parts['path'] : '';
+    $path = $parts['path'] ?? '';
     $query = isset($parts['query']) ? '?' . $parts['query'] : '';
-    return array(
+    return [
       'host+port' => "$host$port",
       'path+query' => "$path$query",
-    );
+    ];
   }
 
   /**
@@ -917,7 +904,7 @@ class CRM_Utils_String {
    */
   public static function filterByWildcards($patterns, $allStrings, $allowNew = FALSE) {
     $patterns = (array) $patterns;
-    $result = array();
+    $result = [];
     foreach ($patterns as $pattern) {
       if (!\CRM_Utils_String::endsWith($pattern, '*')) {
         if ($allowNew || in_array($pattern, $allStrings)) {
@@ -934,6 +921,68 @@ class CRM_Utils_String {
       }
     }
     return array_values(array_unique($result));
+  }
+
+  /**
+   * Safely unserialize a string of scalar or array values (but not objects!)
+   *
+   * Use `xkerman/restricted-unserialize` to unserialize strings using PHP's
+   * serialization format. `restricted-unserialize` works like PHP's built-in
+   * `unserialize` function except that it does not deserialize object instances,
+   * making it immune to PHP Object Injection {@see https://www.owasp.org/index.php/PHP_Object_Injection}
+   * vulnerabilities.
+   *
+   * Note: When dealing with user inputs, it is generally recommended to use
+   * safe, standard data interchange formats such as JSON rather than PHP's
+   * serialization format when dealing with user input.
+   *
+   * @param string|NULL $string
+   *
+   * @return mixed
+   */
+  public static function unserialize($string) {
+    if (!is_string($string)) {
+      return FALSE;
+    }
+    try {
+      return unserialize($string);
+    }
+    catch (UnserializeFailedException $e) {
+      return FALSE;
+    }
+  }
+
+  /**
+   * Returns the plural form of an English word.
+   *
+   * @param string $str
+   * @return string
+   */
+  public static function pluralize($str) {
+    switch (substr($str, -1)) {
+      case 's':
+        return $str . 'es';
+
+      case 'y':
+        return substr($str, 0, -1) . 'ies';
+
+      default:
+        return $str . 's';
+    }
+  }
+
+  /**
+   * Generic check as to whether any tokens are in the given string.
+   *
+   * It might be a smarty token OR a CiviCRM token. In both cases the
+   * absence of a '{' indicates no token is present.
+   *
+   * @param string $string
+   *
+   * @return bool
+   */
+  public static function stringContainsTokens(string $string) {
+    return strpos($string, '{') !== FALSE;
   }
 
 }

@@ -1,34 +1,18 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 5                                                  |
- +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2019                                |
- +--------------------------------------------------------------------+
- | This file is a part of CiviCRM.                                    |
+ | Copyright CiviCRM LLC. All rights reserved.                        |
  |                                                                    |
- | CiviCRM is free software; you can copy, modify, and distribute it  |
- | under the terms of the GNU Affero General Public License           |
- | Version 3, 19 November 2007 and the CiviCRM Licensing Exception.   |
- |                                                                    |
- | CiviCRM is distributed in the hope that it will be useful, but     |
- | WITHOUT ANY WARRANTY; without even the implied warranty of         |
- | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.               |
- | See the GNU Affero General Public License for more details.        |
- |                                                                    |
- | You should have received a copy of the GNU Affero General Public   |
- | License and the CiviCRM Licensing Exception along                  |
- | with this program; if not, contact CiviCRM LLC                     |
- | at info[AT]civicrm[DOT]org. If you have questions about the        |
- | GNU Affero General Public License or the licensing of CiviCRM,     |
- | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
+ | This work is published under the GNU AGPLv3 license with some      |
+ | permitted exceptions and without any warranty. For full license    |
+ | and copyright information, see https://civicrm.org/licensing       |
  +--------------------------------------------------------------------+
  */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2019
+ * @copyright CiviCRM LLC https://civicrm.org/licensing
  */
 class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Search_Custom_Base implements CRM_Contact_Form_Search_Interface {
 
@@ -44,12 +28,12 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
    */
   public function __construct(&$formValues) {
     $this->_formValues = self::formatSavedSearchFields($formValues);
-    $this->_permissionedComponent = array('CiviContribute', 'CiviEvent');
+    $this->_permissionedComponent = ['CiviContribute', 'CiviEvent'];
 
     /**
      * Define the columns for search result rows
      */
-    $this->_columns = array(
+    $this->_columns = [
       ts('Event') => 'event_name',
       ts('Type') => 'event_type',
       ts('Number of<br />Participant') => 'participant_count',
@@ -57,7 +41,7 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
       ts('Fee') => 'fee',
       ts('Net Payment') => 'net_payment',
       ts('Participant') => 'participant',
-    );
+    ];
   }
 
   /**
@@ -83,7 +67,7 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
       $form->addElement('checkbox', "event_type_id[$eventId]", 'Event Type', $eventName);
     }
     $events = CRM_Event_BAO_Event::getEvents(1);
-    $form->add('select', 'event_id', ts('Event Name'), array('' => ts('- select -')) + $events);
+    $form->add('select', 'event_id', ts('Event Name'), ['' => ts('- select -')] + $events);
 
     $form->add('datepicker', 'start_date', ts('Payments Date From'), [], FALSE, ['time' => FALSE]);
     $form->add('datepicker', 'end_date', ts('...through'), [], FALSE, ['time' => FALSE]);
@@ -92,14 +76,14 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
      * If you are using the sample template, this array tells the template fields to render
      * for the search form.
      */
-    $form->assign('elements', array(
-        'paid_online',
-        'start_date',
-        'end_date',
-        'show_payees',
-        'event_type_id',
-        'event_id',
-      ));
+    $form->assign('elements', [
+      'paid_online',
+      'start_date',
+      'end_date',
+      'show_payees',
+      'event_type_id',
+      'event_id',
+    ]);
   }
 
   /**
@@ -226,7 +210,7 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
    * @return string
    */
   public function where($includeContactIDs = FALSE) {
-    $clauses = array();
+    $clauses = [];
 
     $clauses[] = "civicrm_participant.status_id in ( 1 )";
     $clauses[] = "civicrm_contribution.is_test = 0";
@@ -251,7 +235,7 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
     }
 
     if ($includeContactIDs) {
-      $contactIDs = array();
+      $contactIDs = [];
       foreach ($this->_formValues as $id => $value) {
         if ($value &&
           substr($id, 0, CRM_Core_Form::CB_PREFIX_LEN) == CRM_Core_Form::CB_PREFIX
@@ -276,8 +260,8 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
     return implode(' AND ', $clauses);
   }
 
-
   /* This function does a query to get totals for some of the search result columns and returns a totals array. */
+
   /**
    * @return array
    */
@@ -306,10 +290,8 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
         WHERE   $where
         ";
 
-    $dao = CRM_Core_DAO::executeQuery($sql,
-      CRM_Core_DAO::$_nullArray
-    );
-    $totals = array();
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    $totals = [];
     while ($dao->fetch()) {
       $totals['payment_amount'] = $dao->payment_amount;
       $totals['fee'] = $dao->fee;
@@ -329,9 +311,7 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
   public function count() {
     $sql = $this->all();
 
-    $dao = CRM_Core_DAO::executeQuery($sql,
-      CRM_Core_DAO::$_nullArray
-    );
+    $dao = CRM_Core_DAO::executeQuery($sql);
     return $dao->N;
   }
 
@@ -384,10 +364,10 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
    * @return array
    */
   public static function formatSavedSearchFields($formValues) {
-    $dateFields = array(
+    $dateFields = [
       'start_date',
       'end_date',
-    );
+    ];
     foreach ($formValues as $element => $value) {
       if (in_array($element, $dateFields) && !empty($value)) {
         $formValues[$element] = date('Y-m-d', strtotime($value));

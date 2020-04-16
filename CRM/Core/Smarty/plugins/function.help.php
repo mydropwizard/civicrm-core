@@ -1,34 +1,18 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 5                                                  |
- +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2019                                |
- +--------------------------------------------------------------------+
- | This file is a part of CiviCRM.                                    |
+ | Copyright CiviCRM LLC. All rights reserved.                        |
  |                                                                    |
- | CiviCRM is free software; you can copy, modify, and distribute it  |
- | under the terms of the GNU Affero General Public License           |
- | Version 3, 19 November 2007 and the CiviCRM Licensing Exception.   |
- |                                                                    |
- | CiviCRM is distributed in the hope that it will be useful, but     |
- | WITHOUT ANY WARRANTY; without even the implied warranty of         |
- | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.               |
- | See the GNU Affero General Public License for more details.        |
- |                                                                    |
- | You should have received a copy of the GNU Affero General Public   |
- | License and the CiviCRM Licensing Exception along                  |
- | with this program; if not, contact CiviCRM LLC                     |
- | at info[AT]civicrm[DOT]org. If you have questions about the        |
- | GNU Affero General Public License or the licensing of CiviCRM,     |
- | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
+ | This work is published under the GNU AGPLv3 license with some      |
+ | permitted exceptions and without any warranty. For full license    |
+ | and copyright information, see https://civicrm.org/licensing       |
  +--------------------------------------------------------------------+
  */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2019
+ * @copyright CiviCRM LLC https://civicrm.org/licensing
  * $Id$
  *
  */
@@ -56,16 +40,24 @@ function smarty_function_help($params, &$smarty) {
     return NULL;
   }
 
-  $params['file'] = str_replace(array('.tpl', '.hlp'), '', $params['file']);
+  $params['file'] = str_replace(['.tpl', '.hlp'], '', $params['file']);
 
   if (empty($params['title'])) {
     $vars = $smarty->get_template_vars();
     $smarty->assign('id', $params['id'] . '-title');
+
     $name = trim($smarty->fetch($params['file'] . '.hlp'));
+    $extraoutput = '';
     $additionalTPLFile = $params['file'] . '.extra.hlp';
     if ($smarty->template_exists($additionalTPLFile)) {
-      $name .= trim($smarty->fetch($additionalTPLFile));
+      $extraoutput .= trim($smarty->fetch($additionalTPLFile));
+      // Allow override param to replace default text e.g. {hlp id='foo' override=1}
+      if ($smarty->get_template_vars('override_help_text')) {
+        $name = '';
+      }
     }
+    $name .= $extraoutput;
+
     // Ensure we didn't change any existing vars CRM-11900
     foreach ($vars as $key => $value) {
       if ($smarty->get_template_vars($key) !== $value) {
@@ -83,7 +75,7 @@ function smarty_function_help($params, &$smarty) {
   }
 
   // Escape for html
-  $title = htmlspecialchars(ts('%1 Help', array(1 => $name)));
+  $title = htmlspecialchars(ts('%1 Help', [1 => $name]));
   // Escape for html and js
   $name = htmlspecialchars(json_encode($name), ENT_QUOTES);
 

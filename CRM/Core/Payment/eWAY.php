@@ -99,7 +99,7 @@ require_once 'eWAY/eWAY_GatewayResponse.php';
  * Class CRM_Core_Payment_eWAY.
  */
 class CRM_Core_Payment_eWAY extends CRM_Core_Payment {
-  # (not used, implicit in the API, might need to convert?)
+  // (not used, implicit in the API, might need to convert?)
   const CHARSET = 'UTF-8';
 
   /**
@@ -410,6 +410,7 @@ class CRM_Core_Payment_eWAY extends CRM_Core_Payment {
 
     return $params;
   }
+
   // end function doDirectPayment
 
   /**
@@ -465,7 +466,7 @@ class CRM_Core_Payment_eWAY extends CRM_Core_Payment {
    * *****************************************************************************************
    */
   public function checkConfig() {
-    $errorMsg = array();
+    $errorMsg = [];
 
     if (empty($this->_paymentProcessor['user_name'])) {
       $errorMsg[] = ts('eWAY CustomerID is not set for this payment processor');

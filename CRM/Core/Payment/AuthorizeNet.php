@@ -13,6 +13,8 @@
  * @author Marshal Newrock <marshal@idealso.com>
  */
 
+use Civi\Payment\Exception\PaymentProcessorException;
+
 /**
  * NOTE:
  * When looking up response codes in the Authorize.Net API, they
@@ -28,7 +30,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
 
   protected $_mode = NULL;
 
-  protected $_params = array();
+  protected $_params = [];
 
   /**
    * We only need one instance of this object. So we use the singleton
@@ -126,7 +128,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
       return $params;
     }
 
-    $postFields = array();
+    $postFields = [];
     $authorizeNetFields = $this->_getAuthorizeNetFields();
 
     // Set up our call for hook_civicrm_paymentProcessor,
@@ -198,7 +200,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
         // fix for CRM-2566
         if (($this->_mode == 'test') || $response_fields[6] == 0) {
           $query = "SELECT MAX(trxn_id) FROM civicrm_contribution WHERE trxn_id RLIKE 'test[0-9]+'";
-          $p = array();
+          $p = [];
           $trxn_id = strval(CRM_Core_DAO::singleValueQuery($query, $p));
           $trxn_id = str_replace('test', '', $trxn_id);
           $trxn_id = intval($trxn_id) + 1;
@@ -321,7 +323,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
       return self::error(9002, 'Could not initiate connection to payment gateway');
     }
     curl_setopt($submit, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($submit, CURLOPT_HTTPHEADER, array("Content-Type: text/xml"));
+    curl_setopt($submit, CURLOPT_HTTPHEADER, ["Content-Type: text/xml"]);
     curl_setopt($submit, CURLOPT_HEADER, 1);
     curl_setopt($submit, CURLOPT_POSTFIELDS, $arbXML);
     curl_setopt($submit, CURLOPT_POST, 1);
@@ -355,11 +357,13 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
    * @return array
    */
   public function _getAuthorizeNetFields() {
-    $amount = $this->_getParam('total_amount');//Total amount is from the form contribution field
-    if (empty($amount)) {//CRM-9894 would this ever be the case??
+    //Total amount is from the form contribution field
+    $amount = $this->_getParam('total_amount');
+    //CRM-9894 would this ever be the case??
+    if (empty($amount)) {
       $amount = $this->_getParam('amount');
     }
-    $fields = array();
+    $fields = [];
     $fields['x_login'] = $this->_getParam('apiLogin');
     $fields['x_tran_key'] = $this->_getParam('paymentKey');
     $fields['x_email_customer'] = $this->_getParam('emailCustomer');
@@ -462,10 +466,10 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
     $data = trim($data);
     //make it easier to parse fields with quotes in them
     $data = str_replace('""', "''", $data);
-    $fields = array();
+    $fields = [];
 
     while ($data != '') {
-      $matches = array();
+      $matches = [];
       if ($data[0] == '"') {
         // handle quoted fields
         preg_match('/^"(([^"]|\\")*?)",?(.*)$/', $data, $matches);
@@ -501,13 +505,13 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
     $code = $this->_substring_between($content, '<code>', '</code>');
     $text = $this->_substring_between($content, '<text>', '</text>');
     $subscriptionId = $this->_substring_between($content, '<subscriptionId>', '</subscriptionId>');
-    return array(
+    return [
       'refId' => $refId,
       'resultCode' => $resultCode,
       'code' => $code,
       'text' => $text,
       'subscriptionId' => $subscriptionId,
-    );
+    ];
   }
 
   /**
@@ -547,7 +551,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
   public function _getParam($field, $xmlSafe = FALSE) {
     $value = CRM_Utils_Array::value($field, $this->_params, '');
     if ($xmlSafe) {
-      $value = str_replace(array('&', '"', "'", '<', '>'), '', $value);
+      $value = str_replace(['&', '"', "'", '<', '>'], '', $value);
     }
     return $value;
   }
@@ -561,10 +565,10 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
   public function &error($errorCode = NULL, $errorMessage = NULL) {
     $e = CRM_Core_Error::singleton();
     if ($errorCode) {
-      $e->push($errorCode, 0, array(), $errorMessage);
+      $e->push($errorCode, 0, [], $errorMessage);
     }
     else {
-      $e->push(9001, 0, array(), 'Unknown System Error.');
+      $e->push(9001, 0, [], 'Unknown System Error.');
     }
     return $e;
   }
@@ -595,7 +599,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
    *   the error message if any
    */
   public function checkConfig() {
-    $error = array();
+    $error = [];
     if (empty($this->_paymentProcessor['user_name'])) {
       $error[] = ts('APILogin is not set for this payment processor');
     }
@@ -625,7 +629,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
    *
    * @return bool|object
    */
-  public function cancelSubscription(&$message = '', $params = array()) {
+  public function cancelSubscription(&$message = '', $params = []) {
     $template = CRM_Core_Smarty::singleton();
 
     $template->assign('subscriptionType', 'cancel');
@@ -643,7 +647,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
     }
 
     curl_setopt($submit, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($submit, CURLOPT_HTTPHEADER, array("Content-Type: text/xml"));
+    curl_setopt($submit, CURLOPT_HTTPHEADER, ["Content-Type: text/xml"]);
     curl_setopt($submit, CURLOPT_HEADER, 1);
     curl_setopt($submit, CURLOPT_POSTFIELDS, $arbXML);
     curl_setopt($submit, CURLOPT_POST, 1);
@@ -672,7 +676,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
    *
    * @return bool|object
    */
-  public function updateSubscriptionBillingInfo(&$message = '', $params = array()) {
+  public function updateSubscriptionBillingInfo(&$message = '', $params = []) {
     $template = CRM_Core_Smarty::singleton();
     $template->assign('subscriptionType', 'updateBilling');
 
@@ -702,7 +706,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
     }
 
     curl_setopt($submit, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($submit, CURLOPT_HTTPHEADER, array("Content-Type: text/xml"));
+    curl_setopt($submit, CURLOPT_HTTPHEADER, ["Content-Type: text/xml"]);
     curl_setopt($submit, CURLOPT_HEADER, 1);
     curl_setopt($submit, CURLOPT_POSTFIELDS, $arbXML);
     curl_setopt($submit, CURLOPT_POST, 1);
@@ -728,7 +732,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
   /**
    * Process incoming notification.
    */
-  static public function handlePaymentNotification() {
+  public static function handlePaymentNotification() {
     $ipnClass = new CRM_Core_Payment_AuthorizeNetIPN(array_merge($_GET, $_REQUEST));
     $ipnClass->main();
   }
@@ -739,7 +743,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
    *
    * @return bool|object
    */
-  public function changeSubscriptionAmount(&$message = '', $params = array()) {
+  public function changeSubscriptionAmount(&$message = '', $params = []) {
     $template = CRM_Core_Smarty::singleton();
 
     $template->assign('subscriptionType', 'update');
@@ -760,11 +764,11 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
     // submit to authorize.net
     $submit = curl_init($this->_paymentProcessor['url_recur']);
     if (!$submit) {
-      return self::error(9002, 'Could not initiate connection to payment gateway');
+      throw new PaymentProcessorException('Could not initiate connection to payment gateway', 9002);
     }
 
     curl_setopt($submit, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($submit, CURLOPT_HTTPHEADER, array("Content-Type: text/xml"));
+    curl_setopt($submit, CURLOPT_HTTPHEADER, ["Content-Type: text/xml"]);
     curl_setopt($submit, CURLOPT_HEADER, 1);
     curl_setopt($submit, CURLOPT_POSTFIELDS, $arbXML);
     curl_setopt($submit, CURLOPT_POST, 1);
@@ -782,7 +786,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
     $message = "{$responseFields['code']}: {$responseFields['text']}";
 
     if ($responseFields['resultCode'] == 'Error') {
-      return self::error($responseFields['code'], $responseFields['text']);
+      throw new PaymentProcessorException($responseFields['text'], $responseFields['code']);
     }
     return TRUE;
   }
